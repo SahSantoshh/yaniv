@@ -18,8 +18,8 @@ class YanivScoreApp extends StatelessWidget {
 class Player {
   String name;
   List<int> scores = [];
+  List<int> totals = [];
   Player(this.name);
-  int get totalScore => scores.fold(0, (a, b) => a + b);
 }
 
 class SetupScreen extends StatefulWidget {
@@ -30,8 +30,9 @@ class SetupScreen extends StatefulWidget {
 class _SetupScreenState extends State<SetupScreen> {
   final List<TextEditingController> _playerControllers = [];
   final TextEditingController _endScoreController =
-  TextEditingController(text: '124');
+      TextEditingController(text: '124');
   bool halvingRuleEnabled = true;
+  bool winnerHalfPreviousScoreRule = false;
 
   void _addPlayerField() {
     setState(() {
@@ -56,6 +57,7 @@ class _SetupScreenState extends State<SetupScreen> {
           players: players,
           endScore: endScore,
           halvingRuleEnabled: halvingRuleEnabled,
+          winnerHalfPreviousScoreRule: winnerHalfPreviousScoreRule,
         ),
       ),
     );
@@ -110,12 +112,25 @@ class _SetupScreenState extends State<SetupScreen> {
             SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: Text("Enable Halving Rule (62 & 124)")),
+                Expanded(child: Text("Enable Halving Rule (if total hits 62 or 124)")),
                 Switch(
                   value: halvingRuleEnabled,
                   onChanged: (val) {
                     setState(() {
                       halvingRuleEnabled = val;
+                    });
+                  },
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(child: Text("Winner halves previous total score")),
+                Switch(
+                  value: winnerHalfPreviousScoreRule,
+                  onChanged: (val) {
+                    setState(() {
+                      winnerHalfPreviousScoreRule = val;
                     });
                   },
                 ),
@@ -137,11 +152,13 @@ class GameScreen extends StatefulWidget {
   final List<Player> players;
   final int endScore;
   final bool halvingRuleEnabled;
+  final bool winnerHalfPreviousScoreRule;
 
   GameScreen({
     required this.players,
     required this.endScore,
     required this.halvingRuleEnabled,
+    required this.winnerHalfPreviousScoreRule,
   });
 
   @override
@@ -191,36 +208,64 @@ class _GameScreenState extends State<GameScreen> {
 
     List<String> displayScores = [];
 
-    for (int i = 0; i < widget.players.length; i++) {
-      int score;
-      if (i == winnerIndex) {
-        score = 0;
-      } else {
-        score = inputScores[i];
-      }
+    // First calculate tentative totals without halving for display
+    List<int> tentativeTotals = [];
 
-      if (widget.halvingRuleEnabled && (score == 62 || score == 124)) {
-        int halved = (score / 2).floor();
-        widget.players[i].scores.add(halved);
-        displayScores.add('~~$score~~ $halved');
+    for (int i = 0; i < widget.players.length; i++) {
+      int prevTotal = widget.players[i].totals.isEmpty ? 0 : widget.players[i].totals.last;
+      tentativeTotals.add(prevTotal + inputScores[i]);
+    }
+
+    // Now apply halving rule based on new total if enabled
+    for (int i = 0; i < widget.players.length; i++) {
+      int prevTotal = widget.players[i].totals.isEmpty ? 0 : widget.players[i].totals.last;
+      int rawRoundScore = inputScores[i];
+      int newTotal = prevTotal + rawRoundScore;
+
+      if (widget.halvingRuleEnabled && (newTotal == 62 || newTotal == 124)) {
+        int halvedScore = ((newTotal) / 2).ceil() - prevTotal;
+        widget.players[i].scores.add(halvedScore);
+        displayScores.add('~~$rawRoundScore~~ $halvedScore');
       } else {
-        widget.players[i].scores.add(score);
-        displayScores.add(score.toString());
+        widget.players[i].scores.add(rawRoundScore);
+        displayScores.add(rawRoundScore.toString());
       }
+    }
+
+    // Update totals normally first (with scores possibly adjusted for halving)
+    for (var player in widget.players) {
+      int prevTotal = player.totals.isEmpty ? 0 : player.totals.last;
+      int lastRoundScore = player.scores.last;
+      player.totals.add(prevTotal + lastRoundScore);
+    }
+
+    // Apply winner halves previous total score rule if enabled
+    if (widget.winnerHalfPreviousScoreRule) {
+      var winner = widget.players[winnerIndex];
+      int prevTotal = winner.totals.length > 1
+          ? winner.totals[winner.totals.length - 2]
+          : 0;
+      int newTotal = (prevTotal / 2).ceil();
+      winner.totals[winner.totals.length - 1] = newTotal;
+
+      // Update roundHistory display for winner score (strike-through 0 to new score)
+      displayScores[winnerIndex] = '~~0~~ $newTotal';
     }
 
     roundHistory.add(displayScores);
 
     setState(() {});
-
     _checkGameEnd();
   }
 
   bool get gameOver =>
-      widget.players.any((p) => p.totalScore > widget.endScore);
+      widget.players.any((p) => p.totals.isNotEmpty && p.totals.last > widget.endScore);
 
-  Player get winner =>
-      widget.players.reduce((a, b) => a.totalScore < b.totalScore ? a : b);
+  Player get winner => widget.players.reduce((a, b) =>
+      (a.totals.isNotEmpty ? a.totals.last : 0) <
+              (b.totals.isNotEmpty ? b.totals.last : 0)
+          ? a
+          : b);
 
   void _checkGameEnd() {
     if (gameOver) {
@@ -229,8 +274,8 @@ class _GameScreenState extends State<GameScreen> {
           context: context,
           builder: (_) => AlertDialog(
             title: Text('Game Over'),
-            content:
-            Text('${winner.name} wins with the lowest score of ${winner.totalScore}!'),
+            content: Text(
+                '${winner.name} wins with the lowest score of ${winner.totals.last}!'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -248,7 +293,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _showAddScoresDialog() {
     final controllers =
-    List.generate(widget.players.length, (_) => TextEditingController());
+        List.generate(widget.players.length, (_) => TextEditingController());
 
     showDialog(
       context: context,
@@ -280,9 +325,8 @@ class _GameScreenState extends State<GameScreen> {
               child: Text("Cancel")),
           ElevatedButton(
             onPressed: () {
-              final scores = controllers
-                  .map((c) => int.tryParse(c.text) ?? 0)
-                  .toList();
+              final scores =
+                  controllers.map((c) => int.tryParse(c.text) ?? 0).toList();
               _addRound(scores);
               Navigator.pop(context);
             },
@@ -295,7 +339,9 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final totals = widget.players.map((p) => p.totalScore).toList();
+    final totals = widget.players
+        .map((p) => p.totals.isNotEmpty ? p.totals.last : 0)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -316,7 +362,10 @@ class _GameScreenState extends State<GameScreen> {
                   ...roundHistory.asMap().entries.map((entry) {
                     int roundIndex = entry.key;
                     List<String> scores = entry.value;
-                    int winnerIndex = scores.indexOf('0');
+
+                    int winnerIndex = scores.indexWhere((s) =>
+                        s == '0' ||
+                        (s.contains('~~0~~') && widget.winnerHalfPreviousScoreRule));
 
                     return DataRow(
                       cells: [
@@ -325,10 +374,11 @@ class _GameScreenState extends State<GameScreen> {
                           bool isWinner = e.key == winnerIndex;
                           return DataCell(
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: isWinner
-                                    ? Colors.yellow.withOpacity(0.4)
+                                    ? Colors.yellow.withAlpha(102)
                                     : null,
                                 borderRadius: BorderRadius.circular(4),
                               ),
@@ -346,9 +396,9 @@ class _GameScreenState extends State<GameScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       )),
                       ...totals.map((t) => DataCell(Text(
-                        "$t",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ))),
+                            "$t",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ))),
                     ],
                   )
                 ],
