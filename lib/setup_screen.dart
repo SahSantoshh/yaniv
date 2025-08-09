@@ -8,10 +8,10 @@ class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
 
   @override
-  _SetupScreenState createState() => _SetupScreenState();
+  SetupScreenState createState() => SetupScreenState();
 }
 
-class _SetupScreenState extends State<SetupScreen> {
+class SetupScreenState extends State<SetupScreen> {
   final List<TextEditingController> _playerControllers = [];
   final TextEditingController _endScoreController = TextEditingController(
     text: '124',
@@ -58,13 +58,15 @@ class _SetupScreenState extends State<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(elevation: 2,
         title: Text("Yaniv Score Setup"),
         actions: [
           IconButton(
             icon: Icon(Icons.history),
             tooltip: 'View Game History',
             onPressed: () {
+              Focus.of(context).unfocus();
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => GameHistoryScreen()),
@@ -75,15 +77,18 @@ class _SetupScreenState extends State<SetupScreen> {
       ),
       body: Padding(
         padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text("Players", style: TextStyle(fontSize: 18)),
-            Expanded(
-              child: ListView.builder(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Text("Players", style: TextStyle(fontSize: 18)),
+              SizedBox(height: 16,),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
                 itemCount: _playerControllers.length,
                 itemBuilder: (_, i) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: TextField(
                       controller: _playerControllers[i],
                       decoration: InputDecoration(
@@ -94,52 +99,72 @@ class _SetupScreenState extends State<SetupScreen> {
                   );
                 },
               ),
-            ),
-            ElevatedButton(
-              onPressed: _addPlayerField,
-              child: Text("Add Player"),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: _endScoreController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: "End Score",
-                border: OutlineInputBorder(),
+              ElevatedButton(
+
+                style: ElevatedButton.styleFrom(
+                  side: BorderSide(color: Colors.deepPurple),
+                  elevation: 0
+                ),
+                onPressed: _addPlayerField,
+                child: Text("Add Player"),
               ),
-            ),
-            SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text("Enable Halving Rule (if total hits 62 or 124)"),
+              SizedBox(height: 16),
+              TextField(
+                controller: _endScoreController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: "End Score",
+                  border: OutlineInputBorder(),
                 ),
-                Switch(
-                  value: halvingRuleEnabled,
-                  onChanged: (val) {
-                    setState(() {
-                      halvingRuleEnabled = val;
-                    });
-                  },
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(child: Text("Winner halves previous total score")),
-                Switch(
-                  value: winnerHalfPreviousScoreRule,
-                  onChanged: (val) {
-                    setState(() {
-                      winnerHalfPreviousScoreRule = val;
-                    });
-                  },
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(onPressed: _startGame, child: Text("Start Game")),
-          ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text("Enable Halving Rule (if total hits 62 or 124)"),
+                  ),
+                  Switch(
+                    value: halvingRuleEnabled,
+                    onChanged: (val) {
+                      setState(() {
+                        halvingRuleEnabled = val;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(child: Text("Winner halves previous total score")),
+                  Switch(
+                    value: winnerHalfPreviousScoreRule,
+                    onChanged: (val) {
+                      setState(() {
+                        winnerHalfPreviousScoreRule = val;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16),
+                child: ElevatedButton(
+
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size.fromHeight(50),
+                      fixedSize: Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: _startGame, child: Text("Start Game")),
+              ),
+
+            ],
+          ),
         ),
       ),
     );
