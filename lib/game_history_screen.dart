@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'game_history.dart';
 
 class GameHistoryScreen extends StatelessWidget {
-  const GameHistoryScreen({Key? key}) : super(key: key);
+  const GameHistoryScreen({super.key});
 
   String formatDate(String isoString) {
     final date = DateTime.parse(isoString);
