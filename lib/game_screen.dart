@@ -148,8 +148,16 @@ class _GameScreenState extends State<GameScreen> {
 
   void _checkGameEnd() {
     if (gameOver) {
-      // Save winner info in shared preferences
-      GameHistory.addGameWinner(winner.name, winner.totals.last);
+      final loser = widget.players.reduce((a, b) =>
+      (a.totals.isNotEmpty ? a.totals.last : 0) >
+          (b.totals.isNotEmpty ? b.totals.last : 0) ? a : b);
+
+      GameHistory.addGameResult(
+        winnerName: winner.name,
+        winnerScore: winner.totals.last,
+        loserName: loser.name,
+        loserScore: loser.totals.last,
+      );
 
       Future.delayed(Duration.zero, () {
         if (!mounted) return;
@@ -159,7 +167,8 @@ class _GameScreenState extends State<GameScreen> {
           builder: (context) => AlertDialog(
             title: Text('Game Over'),
             content: Text(
-                '${winner.name} wins with the lowest score of ${winner.totals.last}!'),
+                '${winner.name} wins with the lowest score of ${winner.totals.last}!\n'
+                    'Loser: ${loser.name} with the highest score of ${loser.totals.last}.'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -174,6 +183,7 @@ class _GameScreenState extends State<GameScreen> {
       });
     }
   }
+
 
   void _showAddScoresDialog() {
     final controllers =

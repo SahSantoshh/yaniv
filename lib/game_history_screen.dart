@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'game_history.dart';
 
 class GameHistoryScreen extends StatelessWidget {
-  const GameHistoryScreen({Key? key}) : super(key: key);
+  const GameHistoryScreen({super.key});
 
   String formatDate(String isoString) {
     final date = DateTime.parse(isoString);
@@ -30,8 +30,8 @@ class GameHistoryScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final entry = history[index];
               return ListTile(
-                title: Text(entry['winner']),
-                subtitle: Text('Score: ${entry['score']}'),
+                title: Text('Winner: ${entry['winner']} (Score: ${entry['winnerScore']})'),
+                subtitle: Text('Loser: ${entry['loser']} (Score: ${entry['loserScore']})'),
                 trailing: Text(formatDate(entry['date'])),
               );
             },

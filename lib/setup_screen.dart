@@ -66,7 +66,7 @@ class SetupScreenState extends State<SetupScreen> {
             icon: Icon(Icons.history),
             tooltip: 'View Game History',
             onPressed: () {
-              Focus.of(context).unfocus();
+              // Focus.of(context).unfocus();
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => GameHistoryScreen()),
@@ -100,7 +100,6 @@ class SetupScreenState extends State<SetupScreen> {
                 },
               ),
               ElevatedButton(
-
                 style: ElevatedButton.styleFrom(
                   side: BorderSide(color: Colors.deepPurple),
                   elevation: 0
