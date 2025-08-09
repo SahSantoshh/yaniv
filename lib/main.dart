@@ -10,6 +10,7 @@ class YanivScoreApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Yaniv Score Tracker',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
       home: SetupScreen(),
     );
