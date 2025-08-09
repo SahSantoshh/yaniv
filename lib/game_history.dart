@@ -2,10 +2,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class GameHistory {
-  static const String _key = 'game_winners';
+  static const String _key = 'game_results';
 
-  /// Save a winner with current date
-  static Future<void> addGameWinner(String winnerName, int winnerScore) async {
+  /// Save game result with winner and loser info
+  static Future<void> addGameResult({
+    required String winnerName,
+    required int winnerScore,
+    required String loserName,
+    required int loserScore,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
 
     final historyJson = prefs.getString(_key);
@@ -14,7 +19,9 @@ class GameHistory {
     history.add({
       'date': DateTime.now().toIso8601String(),
       'winner': winnerName,
-      'score': winnerScore,
+      'winnerScore': winnerScore,
+      'loser': loserName,
+      'loserScore': loserScore,
     });
 
     await prefs.setString(_key, jsonEncode(history));
