@@ -343,13 +343,15 @@ class _GameScreenState extends State<GameScreen> {
         .map((p) => p.totals.isNotEmpty ? p.totals.last : 0)
         .toList();
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (!gameOver) {
+    return PopScope(
+      canPop: gameOver, // Allow direct pop only if game is over
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop && !gameOver) {
           bool? confirm = await _showEndGameDialog(context);
-          return confirm ?? false;
+          if (confirm == true) {
+            Navigator.pop;
+          }
         }
-        return true;
       },
 
       child: Scaffold(
