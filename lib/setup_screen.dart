@@ -4,6 +4,8 @@ import 'package:yaniv/player.dart';
 import 'game_screen.dart';
 
 class SetupScreen extends StatefulWidget {
+  const SetupScreen({super.key});
+
   @override
   _SetupScreenState createState() => _SetupScreenState();
 }
@@ -13,7 +15,7 @@ class _SetupScreenState extends State<SetupScreen> {
   final TextEditingController _endScoreController =
   TextEditingController(text: '124');
   bool halvingRuleEnabled = true;
-  bool winnerHalfPreviousScoreRule = false;
+  bool winnerHalfPreviousScoreRule = true;
 
   void _addPlayerField() {
     setState(() {

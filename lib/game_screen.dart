@@ -7,7 +7,7 @@ class GameScreen extends StatefulWidget {
   final bool halvingRuleEnabled;
   final bool winnerHalfPreviousScoreRule;
 
-  GameScreen({
+  const GameScreen({
     required this.players,
     required this.endScore,
     required this.halvingRuleEnabled,
@@ -65,7 +65,7 @@ class _GameScreenState extends State<GameScreen> {
         context: context,
         builder: (_) => AlertDialog(
           title: Text('Invalid Scores'),
-          content: Text('There must be exactly one winner score 0). Please adjust scores.'),
+          content: Text('There must be exactly one winner with score 0. Please adjust scores.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -217,6 +217,109 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _deleteRound(int roundIndex) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Delete Round'),
+        content: Text('Are you sure you want to delete Round ${roundIndex + 1}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), // Cancel
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                roundHistory.removeAt(roundIndex);
+                _recalculateTotals();
+              });
+              Navigator.pop(context);
+            },
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _recalculateTotals() {
+    // Clear all players' scores and totals
+    for (var player in widget.players) {
+      player.scores.clear();
+      player.totals.clear();
+    }
+
+    // Temporary roundHistory to rebuild display strings correctly
+    List<List<String>> newRoundHistory = [];
+
+    for (int roundIndex = 0; roundIndex < roundHistory.length; roundIndex++) {
+      // Parse original input scores for this round from roundHistory strings
+      List<int> rawRoundScores = [];
+      for (var scoreStr in roundHistory[roundIndex]) {
+        if (scoreStr.contains('~~')) {
+          // Format: "~~original~~ halved"
+          var parts = scoreStr.split(' ');
+          rawRoundScores.add(int.parse(parts[0].replaceAll('~~', '')));
+        } else {
+          rawRoundScores.add(int.parse(scoreStr));
+        }
+      }
+
+      List<String> displayScores = [];
+      List<int> adjustedRoundScores = [];
+
+      // Calculate tentative totals and adjusted round scores applying halving rule
+      for (int i = 0; i < widget.players.length; i++) {
+        int prevTotal = widget.players[i].totals.isEmpty ? 0 : widget.players[i].totals.last;
+        int rawScore = rawRoundScores[i];
+        int newTotal = prevTotal + rawScore;
+
+        if (widget.halvingRuleEnabled && (newTotal == 62 || newTotal == 124)) {
+          // Calculate halved score for this round
+          int halvedScore = ((newTotal) / 2).ceil() - prevTotal;
+          adjustedRoundScores.add(halvedScore);
+          displayScores.add('~~$rawScore~~ $halvedScore');
+        } else {
+          adjustedRoundScores.add(rawScore);
+          displayScores.add(rawScore.toString());
+        }
+      }
+
+      // Add adjusted round scores to players and update totals
+      for (int i = 0; i < widget.players.length; i++) {
+        var player = widget.players[i];
+        int prevTotal = player.totals.isEmpty ? 0 : player.totals.last;
+        player.scores.add(adjustedRoundScores[i]);
+        player.totals.add(prevTotal + adjustedRoundScores[i]);
+      }
+
+      // Apply winner halves previous total rule if enabled
+      if (widget.winnerHalfPreviousScoreRule) {
+        int winnerIndex = adjustedRoundScores.indexOf(0);
+        if (winnerIndex >= 0) {
+          var winner = widget.players[winnerIndex];
+          int prevTotal = winner.totals.length > 1 ? winner.totals[winner.totals.length - 2] : 0;
+          int newTotal = (prevTotal / 2).ceil();
+
+          winner.totals[winner.totals.length - 1] = newTotal;
+
+          // Update display score for winner in this round with strikethrough and new total
+          displayScores[winnerIndex] = '~~0~~ $newTotal';
+        }
+      }
+
+      newRoundHistory.add(displayScores);
+    }
+
+    // Replace old roundHistory with recalculated display strings
+    roundHistory
+      ..clear()
+      ..addAll(newRoundHistory);
+
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final totals = widget.players
@@ -237,6 +340,7 @@ class _GameScreenState extends State<GameScreen> {
                 columns: [
                   DataColumn(label: Text("Round")),
                   ...widget.players.map((p) => DataColumn(label: Text(p.name))),
+                  DataColumn(label: Text('Actions')),  // New column for delete button
                 ],
                 rows: [
                   ...roundHistory.asMap().entries.map((entry) {
@@ -254,21 +358,25 @@ class _GameScreenState extends State<GameScreen> {
                           bool isWinner = e.key == winnerIndex;
                           return DataCell(
                             Container(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: isWinner
-                                    ? Colors.yellow.withAlpha(102)
-                                    : null,
+                                color: isWinner ? Colors.yellow.withAlpha(102) : null,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: _scoreDisplay(e.value),
                             ),
                           );
                         }).toList(),
+                        DataCell(
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            tooltip: 'Delete Round',
+                            onPressed: () => _deleteRound(roundIndex),
+                          ),
+                        ),
                       ],
                     );
-                  }),
+                  }).toList(),
                   DataRow(
                     cells: [
                       DataCell(Text(
@@ -279,6 +387,7 @@ class _GameScreenState extends State<GameScreen> {
                         "$t",
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ))),
+                      DataCell(Text('')), // Empty cell for Actions column on total row
                     ],
                   )
                 ],
