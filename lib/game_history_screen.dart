@@ -30,8 +30,8 @@ class GameHistoryScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final entry = history[index];
               return ListTile(
-                title: Text(entry['winner']),
-                subtitle: Text('Score: ${entry['score']}'),
+                title: Text('Winner: ${entry['winner']} (Score: ${entry['winnerScore']})'),
+                subtitle: Text('Loser: ${entry['loser']} (Score: ${entry['loserScore']})'),
                 trailing: Text(formatDate(entry['date'])),
               );
             },
