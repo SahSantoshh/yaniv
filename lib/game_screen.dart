@@ -343,87 +343,131 @@ class _GameScreenState extends State<GameScreen> {
         .map((p) => p.totals.isNotEmpty ? p.totals.last : 0)
         .toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Yaniv Game"),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(8),
-        child: Column(
-          children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: [
-                  DataColumn(label: Text("Round")),
-                  ...widget.players.map((p) => DataColumn(label: Text(p.name))),
-                  DataColumn(label: Text('Actions')),  // New column for delete button
-                ],
-                rows: [
-                  ...roundHistory.asMap().entries.map((entry) {
-                    int roundIndex = entry.key;
-                    List<String> scores = entry.value;
+    return PopScope(
+      canPop: gameOver, // Allow direct pop only if game is over
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop && !gameOver) {
+          bool? confirm = await _showEndGameDialog(context);
+          if (confirm == true) {
+            Navigator.pop;
+          }
+        }
+      },
 
-                    int winnerIndex = scores.indexWhere((s) =>
-                    s == '0' ||
-                        (s.contains('~~0~~') && widget.winnerHalfPreviousScoreRule));
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: Text("Yaniv Game"),
+          actions: [
+            TextButton(
+            onPressed: () async {
+      bool? confirm = await _showEndGameDialog(context);
+      if (confirm == true) {
+      // End game logic here
 
-                    return DataRow(
-                      cells: [
-                        DataCell(Text("${roundIndex + 1}")),
-                        ...scores.asMap().entries.map((e) {
-                          bool isWinner = e.key == winnerIndex;
-                          return DataCell(
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: isWinner ? Colors.yellow.withAlpha(102) : null,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: _scoreDisplay(e.value),
-                            ),
-                          );
-                        }).toList(),
-                        DataCell(
-                          IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            tooltip: 'Delete Round',
-                            onPressed: () => _deleteRound(roundIndex),
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                  DataRow(
-                    cells: [
-                      DataCell(Text(
-                        "Total",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      )),
-                      ...totals.map((t) => DataCell(Text(
-                        "$t",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ))),
-                      DataCell(Text('')), // Empty cell for Actions column on total row
-                    ],
-                  )
-                ],
-              ),
-            ),
-            SizedBox(height: 20),
-            if (!gameOver)
-              ElevatedButton(
-                onPressed: _showAddScoresDialog,
-                child: Text("Add Round Scores"),
-              ),
-            if (gameOver)
-              Text(
-                "Game Over! Winner: ${winner.name}",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              )
+      Navigator.pop(context);
+      }
+              }, child:Text('End Game'), ),
           ],
+        ),
+        body: Padding(
+          padding: EdgeInsets.all(8),
+          child: Column(
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columns: [
+                    DataColumn(label: Text("Round")),
+                    ...widget.players.map((p) => DataColumn(label: Text(p.name))),
+                    DataColumn(label: Text('Actions')),  // New column for delete button
+                  ],
+                  rows: [
+                    ...roundHistory.asMap().entries.map((entry) {
+                      int roundIndex = entry.key;
+                      List<String> scores = entry.value;
+
+                      int winnerIndex = scores.indexWhere((s) =>
+                      s == '0' ||
+                          (s.contains('~~0~~') && widget.winnerHalfPreviousScoreRule));
+
+                      return DataRow(
+                        cells: [
+                          DataCell(Text("${roundIndex + 1}")),
+                          ...scores.asMap().entries.map((e) {
+                            bool isWinner = e.key == winnerIndex;
+                            return DataCell(
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isWinner ? Colors.yellow.withAlpha(102) : null,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: _scoreDisplay(e.value),
+                              ),
+                            );
+                          }).toList(),
+                          DataCell(
+                            IconButton(
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              tooltip: 'Delete Round',
+                              onPressed: () => _deleteRound(roundIndex),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                    DataRow(
+                      cells: [
+                        DataCell(Text(
+                          "Total",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        )),
+                        ...totals.map((t) => DataCell(Text(
+                          "$t",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ))),
+                        DataCell(Text('')), // Empty cell for Actions column on total row
+                      ],
+                    )
+                  ],
+                ),
+              ),
+              SizedBox(height: 20),
+              if (!gameOver)
+                ElevatedButton(
+                  onPressed: _showAddScoresDialog,
+                  child: Text("Add Round Scores"),
+                ),
+              if (gameOver)
+                Text(
+                  "Game Over! Winner: ${winner.name}",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                )
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+Future<bool?> _showEndGameDialog(context) {
+  return showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('End Game?'),
+      content: Text('Are you sure you want to end the game?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text('End Game'),
+        ),
+      ],
+    ),
+  );
 }
