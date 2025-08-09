@@ -30,7 +30,7 @@ class SetupScreen extends StatefulWidget {
 class _SetupScreenState extends State<SetupScreen> {
   final List<TextEditingController> _playerControllers = [];
   final TextEditingController _endScoreController =
-      TextEditingController(text: '124');
+  TextEditingController(text: '124');
   bool halvingRuleEnabled = true;
   bool winnerHalfPreviousScoreRule = false;
 
@@ -202,9 +202,29 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  void _addRound(List<int> inputScores) {
-    final minScore = inputScores.reduce((a, b) => a < b ? a : b);
-    final winnerIndex = inputScores.indexOf(minScore);
+  /// Returns true if round added successfully, false if invalid (multiple winners)
+  Future<bool> _addRound(List<int> inputScores) async {
+    final winnersCount = inputScores.where((s) => s == 0).length;
+
+    if (winnersCount != 1) {
+      // Show error dialog, multiple winners found
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text('Invalid Scores'),
+          content: Text('There must be exactly one winner score 0). Please adjust scores.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('OK'),
+            )
+          ],
+        ),
+      );
+      return false; // Indicate failure
+    }
+
+    final winnerIndex = inputScores.indexOf(0);
 
     List<String> displayScores = [];
 
@@ -212,13 +232,15 @@ class _GameScreenState extends State<GameScreen> {
     List<int> tentativeTotals = [];
 
     for (int i = 0; i < widget.players.length; i++) {
-      int prevTotal = widget.players[i].totals.isEmpty ? 0 : widget.players[i].totals.last;
+      int prevTotal =
+      widget.players[i].totals.isEmpty ? 0 : widget.players[i].totals.last;
       tentativeTotals.add(prevTotal + inputScores[i]);
     }
 
     // Now apply halving rule based on new total if enabled
     for (int i = 0; i < widget.players.length; i++) {
-      int prevTotal = widget.players[i].totals.isEmpty ? 0 : widget.players[i].totals.last;
+      int prevTotal =
+      widget.players[i].totals.isEmpty ? 0 : widget.players[i].totals.last;
       int rawRoundScore = inputScores[i];
       int newTotal = prevTotal + rawRoundScore;
 
@@ -256,16 +278,18 @@ class _GameScreenState extends State<GameScreen> {
 
     setState(() {});
     _checkGameEnd();
+
+    return true; // Indicate success
   }
 
   bool get gameOver =>
       widget.players.any((p) => p.totals.isNotEmpty && p.totals.last > widget.endScore);
 
   Player get winner => widget.players.reduce((a, b) =>
-      (a.totals.isNotEmpty ? a.totals.last : 0) <
-              (b.totals.isNotEmpty ? b.totals.last : 0)
-          ? a
-          : b);
+  (a.totals.isNotEmpty ? a.totals.last : 0) <
+      (b.totals.isNotEmpty ? b.totals.last : 0)
+      ? a
+      : b);
 
   void _checkGameEnd() {
     if (gameOver) {
@@ -293,7 +317,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _showAddScoresDialog() {
     final controllers =
-        List.generate(widget.players.length, (_) => TextEditingController());
+    List.generate(widget.players.length, (_) => TextEditingController());
 
     showDialog(
       context: context,
@@ -324,11 +348,14 @@ class _GameScreenState extends State<GameScreen> {
               },
               child: Text("Cancel")),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final scores =
-                  controllers.map((c) => int.tryParse(c.text) ?? 0).toList();
-              _addRound(scores);
-              Navigator.pop(context);
+              controllers.map((c) => int.tryParse(c.text) ?? 0).toList();
+              bool success = await _addRound(scores);
+              if (success) {
+                Navigator.pop(context);
+              }
+              // else keep dialog open to fix input
             },
             child: Text("Save"),
           ),
@@ -364,7 +391,7 @@ class _GameScreenState extends State<GameScreen> {
                     List<String> scores = entry.value;
 
                     int winnerIndex = scores.indexWhere((s) =>
-                        s == '0' ||
+                    s == '0' ||
                         (s.contains('~~0~~') && widget.winnerHalfPreviousScoreRule));
 
                     return DataRow(
@@ -396,9 +423,9 @@ class _GameScreenState extends State<GameScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       )),
                       ...totals.map((t) => DataCell(Text(
-                            "$t",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ))),
+                        "$t",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ))),
                     ],
                   )
                 ],
