@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:yaniv/player.dart';
 
+import 'game_history.dart';
+
 class GameScreen extends StatefulWidget {
   final List<Player> players;
   final int endScore;
@@ -146,10 +148,15 @@ class _GameScreenState extends State<GameScreen> {
 
   void _checkGameEnd() {
     if (gameOver) {
+      // Save winner info in shared preferences
+      GameHistory.addGameWinner(winner.name, winner.totals.last);
+
       Future.delayed(Duration.zero, () {
+        if (!mounted) return;
+
         showDialog(
           context: context,
-          builder: (_) => AlertDialog(
+          builder: (context) => AlertDialog(
             title: Text('Game Over'),
             content: Text(
                 '${winner.name} wins with the lowest score of ${winner.totals.last}!'),
