@@ -193,22 +193,25 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text("Enter Round Scores"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(widget.players.length, (i) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: TextField(
-                  controller: controllers[i],
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: widget.players[i].name,
-                    border: OutlineInputBorder(),
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.7,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(widget.players.length, (i) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: TextField(
+                    controller: controllers[i],
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: widget.players[i].name,
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ),
         ),
         actions: [
