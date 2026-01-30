@@ -98,10 +98,7 @@ class SetupScreenState extends State<SetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         title: const Text("Yaniv Setup", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
@@ -218,11 +215,6 @@ class SetupScreenState extends State<SetupScreen> {
             ),
             const SizedBox(height: 32),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(60),
-              ),
               onPressed: _startGame,
               child: const Text("START GAME", style: TextStyle(fontSize: 18, letterSpacing: 1.2)),
             ),
@@ -241,7 +233,7 @@ class SetupScreenState extends State<SetupScreen> {
           fontSize: 14,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.1,
-          color: Colors.white70,
+          color: Colors.black54,
         ),
       ),
     );
