@@ -3,7 +3,6 @@ import 'package:yaniv/setup_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   runApp(const YanivScoreApp());
 }
 
@@ -19,45 +18,69 @@ class YanivScoreApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
+          seedColor: const Color(0xFF673AB7), // Deep Purple
           brightness: Brightness.light,
-          primary: Colors.deepPurple,
-          secondary: Colors.amber,
-          surface: const Color(0xFFF8F9FA),
-          surfaceVariant: const Color(0xFFEEEEF2),
+          primary: const Color(0xFF673AB7),
+          onPrimary: Colors.white,
+          secondary: const Color(0xFFFFC107), // Amber
+          surface: const Color(0xFFFFFFFF),
+          surfaceContainerHighest: const Color(0xFFF3E5F5), // Light Purple Tint
         ),
-        scaffoldBackgroundColor: const Color(0xFFF0F2F5),
+        scaffoldBackgroundColor: const Color(0xFFF8F7FA),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          titleTextStyle: TextStyle(
+            color: Color(0xFF311B92),
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+          iconTheme: IconThemeData(color: Color(0xFF311B92)),
+        ),
         cardTheme: CardThemeData(
           color: Colors.white,
-          elevation: 2,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(color: Colors.deepPurple.withValues(alpha: 0.1), width: 1),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            elevation: 0,
+            backgroundColor: const Color(0xFF673AB7),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 32),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
             ),
-            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: const Color(0xFFF3E5F5).withValues(alpha: 0.5),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF673AB7), width: 2),
           ),
+          labelStyle: const TextStyle(color: Color(0xFF673AB7), fontWeight: FontWeight.w500),
+          hintStyle: TextStyle(color: Colors.deepPurple.withValues(alpha: 0.3)),
         ),
       ),
       home: const SetupScreen(),

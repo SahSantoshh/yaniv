@@ -66,7 +66,12 @@ class SetupScreenState extends State<SetupScreen> {
 
     if (players.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Add at least 2 players to start")),
+        SnackBar(
+          content: const Text("Add at least 2 players to start"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
       return;
     }
@@ -98,13 +103,15 @@ class SetupScreenState extends State<SetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Yaniv Setup", style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
+        title: const Text("YANIV"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.history),
+            icon: const Icon(Icons.history_rounded),
             onPressed: () {
               Navigator.push(
                 context,
@@ -112,100 +119,122 @@ class SetupScreenState extends State<SetupScreen> {
               );
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildSectionTitle("Players"),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
+            _buildSectionHeader(context, "PLAYERS", Icons.people_alt_rounded),
+            const SizedBox(height: 12),
+            ...List.generate(_playerControllers.length, (i) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
                   children: [
-                    ...List.generate(_playerControllers.length, (i) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _playerControllers[i],
-                                focusNode: _playerFocusNodes[i],
-                                decoration: InputDecoration(
-                                  hintText: "Player ${i + 1} Name",
-                                  prefixIcon: const Icon(Icons.person),
-                                ),
-                              ),
-                            ),
-                            if (_playerControllers.length > 2)
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
-                                onPressed: () => _removePlayerField(i),
-                              ),
-                          ],
+                    Expanded(
+                      child: TextField(
+                        controller: _playerControllers[i],
+                        focusNode: _playerFocusNodes[i],
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          hintText: "Player ${i + 1}",
+                          prefixIcon: Icon(Icons.person_outline_rounded, color: colorScheme.primary),
                         ),
-                      );
-                    }),
-                    TextButton.icon(
-                      onPressed: _addPlayerField,
-                      icon: const Icon(Icons.add),
-                      label: const Text("Add Player"),
+                      ),
                     ),
+                    if (_playerControllers.length > 2) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => _removePlayerField(i),
+                        icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.redAccent),
+                      ),
+                    ],
                   ],
                 ),
+              );
+            }),
+            TextButton.icon(
+              onPressed: _addPlayerField,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text("Add another player"),
+              style: TextButton.styleFrom(
+                foregroundColor: colorScheme.primary,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-            const SizedBox(height: 24),
-            _buildSectionTitle("Game Rules"),
+            const SizedBox(height: 32),
+            _buildSectionHeader(context, "GAME SETTINGS", Icons.settings_suggest_rounded),
+            const SizedBox(height: 12),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
                     TextField(
                       controller: _endScoreController,
                       keyboardType: TextInputType.number,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                       decoration: const InputDecoration(
-                        labelText: "End Score (Limit)",
-                        prefixIcon: Icon(Icons.outlined_flag),
+                        labelText: "Score Limit",
+                        prefixIcon: Icon(Icons.outlined_flag_rounded),
+                        suffixText: "pts",
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _buildSwitchTile(
+                    const SizedBox(height: 24),
+                    _buildFancySwitch(
+                      context,
                       "Halving Rule",
-                      "Score halves if total hits 62 or 124",
+                      "Score halves at 62 or 124",
+                      Icons.auto_awesome_rounded,
                       halvingRuleEnabled,
                       (val) => setState(() => halvingRuleEnabled = val),
                     ),
-                    _buildSwitchTile(
+                    const Divider(height: 32),
+                    _buildFancySwitch(
+                      context,
                       "Winner's Bonus",
-                      "Winner halves their previous total score",
+                      "Winner halves previous total",
+                      Icons.workspace_premium_rounded,
                       winnerHalfPreviousScoreRule,
                       (val) => setState(() => winnerHalfPreviousScoreRule = val),
                     ),
-                    _buildSwitchTile(
-                      "Asaf Penalty",
-                      "Enable penalty for unsuccessful calls",
+                    const Divider(height: 32),
+                    _buildFancySwitch(
+                      context,
+                      "Asaf Penalties",
+                      "Penalty for failed Yaniv calls",
+                      Icons.gavel_rounded,
                       asafPenaltyRuleEnabled,
                       (val) => setState(() => asafPenaltyRuleEnabled = val),
                     ),
                     if (asafPenaltyRuleEnabled) ...[
-                      const Divider(),
-                      _buildSwitchTile(
-                        "Tie Penalty",
-                        "Penalize caller even on a tie",
-                        penaltyOnTieRuleEnabled,
-                        (val) => setState(() => penaltyOnTieRuleEnabled = val),
-                      ),
-                      TextField(
-                        controller: _penaltyScoreController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: "Penalty Points",
-                          prefixIcon: Icon(Icons.warning_amber),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: Column(
+                          children: [
+                            _buildFancySwitch(
+                              context,
+                              "Tie Penalty",
+                              "Penalty on exact tie",
+                              Icons.equalizer_rounded,
+                              penaltyOnTieRuleEnabled,
+                              (val) => setState(() => penaltyOnTieRuleEnabled = val),
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _penaltyScoreController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: "Penalty Points",
+                                prefixIcon: Icon(Icons.warning_amber_rounded),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -213,39 +242,68 @@ class SetupScreenState extends State<SetupScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
             ElevatedButton(
               onPressed: _startGame,
-              child: const Text("START GAME", style: TextStyle(fontSize: 18, letterSpacing: 1.2)),
+              child: const Text("START MATCH"),
             ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.1,
-          color: Colors.black54,
+  Widget _buildSectionHeader(BuildContext context, String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7)),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.5,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildSwitchTile(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
-    return SwitchListTile(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      value: value,
-      onChanged: onChanged,
-      contentPadding: EdgeInsets.zero,
+  Widget _buildFancySwitch(BuildContext context, String title, String subtitle, IconData icon, bool value, ValueChanged<bool> onChanged) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: colorScheme.primary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.black.withValues(alpha: 0.5))),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: colorScheme.primary,
+          ),
+        ],
+      ),
     );
   }
 }
