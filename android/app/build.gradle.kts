@@ -47,7 +47,16 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            manifestPlaceholders["appNameSuffix"] = " (Debug)"
+            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+
         release {
+            manifestPlaceholders["appNameSuffix"] = ""
             signingConfig = signingConfigs.getByName("release")
             // Enable code shrinking and resource shrinking
             isMinifyEnabled = true        // enables code shrinking (ProGuard/R8)
@@ -56,12 +65,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-        }
-
-        debug{
-            signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = false
-            isShrinkResources = false
         }
     }
 }
