@@ -508,101 +508,109 @@ class _GameScreenState extends State<GameScreen> {
           scrollDirection: Axis.vertical,
           child: Padding(
             padding: EdgeInsets.all(8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: [
-                      DataColumn(label: Text("Round")),
-                      ...widget.players.map(
-                        (p) => DataColumn(label: Text(p.name)),
-                      ),
-                      DataColumn(
-                        label: Text('Actions'),
-                      ), // New column for delete button
-                    ],
-                    rows: [
-                      ...roundHistory.asMap().entries.map((entry) {
-                        int roundIndex = entry.key;
-                        List<String> scores = entry.value;
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: [
+                        DataColumn(label: Text("Round")),
+                        ...widget.players.map(
+                          (p) => DataColumn(label: Text(p.name)),
+                        ),
+                        DataColumn(
+                          label: Text('Actions'),
+                        ), // New column for delete button
+                      ],
+                      rows: [
+                        ...roundHistory.asMap().entries.map((entry) {
+                          int roundIndex = entry.key;
+                          List<String> scores = entry.value;
 
-                        // Let's refine winner search: The winner is the one who played 0.
-                        // We don't have the raw scores here easily unless we look at _rawScoreHistory[roundIndex]
-                        // Accessing raw history is cleaner.
-                        // Accessing raw history is cleaner.
-                        int rawWinnerIndex = _rawScoreHistory[roundIndex]
-                            .indexWhere((s) => s.value == 0);
+                          // Find ALL winners (score 0) to highlight them
+                          final Set<int> winnerIndices = {};
+                          final rawScores = _rawScoreHistory[roundIndex];
+                          for (int i = 0; i < rawScores.length; i++) {
+                            if (rawScores[i].value == 0) {
+                              winnerIndices.add(i);
+                            }
+                          }
 
-                        return DataRow(
-                          cells: [
-                            DataCell(Text("${roundIndex + 1}")),
-                            ...scores.asMap().entries.map((e) {
-                              bool isWinner = e.key == rawWinnerIndex;
-                              return DataCell(
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
+                          return DataRow(
+                            cells: [
+                              DataCell(Text("${roundIndex + 1}")),
+                              ...scores.asMap().entries.map((e) {
+                                bool isWinner = winnerIndices.contains(e.key);
+                                return DataCell(
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isWinner
+                                          ? Colors.yellow.withAlpha(102)
+                                          : null,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: _scoreDisplay(e.value),
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: isWinner
-                                        ? Colors.yellow.withAlpha(102)
-                                        : null,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: _scoreDisplay(e.value),
+                                );
+                              }),
+                              DataCell(
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  tooltip: 'Delete Round',
+                                  onPressed: () => _deleteRound(roundIndex),
                                 ),
-                              );
-                            }),
-                            DataCell(
-                              IconButton(
-                                icon: Icon(Icons.delete, color: Colors.red),
-                                tooltip: 'Delete Round',
-                                onPressed: () => _deleteRound(roundIndex),
                               ),
-                            ),
-                          ],
-                        );
-                      }),
-                      DataRow(
-                        cells: [
-                          DataCell(
-                            Text(
-                              "Total",
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          ...totals.map(
-                            (t) => DataCell(
+                            ],
+                          );
+                        }),
+                        DataRow(
+                          cells: [
+                            DataCell(
                               Text(
-                                "$t",
+                                "Total",
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
-                          ),
-                          DataCell(
-                            Text(''),
-                          ), // Empty cell for Actions column on total row
-                        ],
+                            ...totals.map(
+                              (t) => DataCell(
+                                Text(
+                                  "$t",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(''),
+                            ), // Empty cell for Actions column on total row
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  if (!gameOver)
+                    ElevatedButton(
+                      onPressed: _showAddScoresDialog,
+                      child: Text("Add Round Scores"),
+                    ),
+                  if (gameOver)
+                    Text(
+                      "Game Over! Winner: ${winner.name}",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20),
-                if (!gameOver)
-                  ElevatedButton(
-                    onPressed: _showAddScoresDialog,
-                    child: Text("Add Round Scores"),
-                  ),
-                if (gameOver)
-                  Text(
-                    "Game Over! Winner: ${winner.name}",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-              ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),
