@@ -20,6 +20,9 @@ class GameHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -42,12 +45,15 @@ class GameHistoryScreen extends StatelessWidget {
                   Icon(
                     Icons.history_toggle_off,
                     size: 64,
-                    color: Colors.white24,
+                    color: colorScheme.onSurface.withValues(alpha: 0.2),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No games recorded yet',
-                    style: TextStyle(color: Colors.white38, fontSize: 16),
+                    style: TextStyle(
+                      color: colorScheme.onSurface.withValues(alpha: 0.4),
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               ),
@@ -72,7 +78,7 @@ class GameHistoryScreen extends StatelessWidget {
                           Text(
                             formatDate(entry['date']),
                             style: TextStyle(
-                              color: Colors.white38,
+                              color: colorScheme.onSurfaceVariant,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -83,13 +89,13 @@ class GameHistoryScreen extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.deepPurpleAccent.withOpacity(0.2),
+                              color: colorScheme.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
+                            child: Text(
                               "COMPLETED",
                               style: TextStyle(
-                                color: Colors.deepPurpleAccent,
+                                color: colorScheme.primary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -97,26 +103,28 @@ class GameHistoryScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const Divider(height: 24, color: Colors.white10),
+                      const Divider(height: 24),
                       Row(
                         children: [
                           _buildPlayerStats(
+                            context,
                             entry['winner'],
                             entry['winnerScore'],
                             true,
                           ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
                               "VS",
                               style: TextStyle(
-                                color: Colors.white24,
+                                color: colorScheme.onSurface.withValues(alpha: 0.2),
                                 fontWeight: FontWeight.bold,
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
                           ),
                           _buildPlayerStats(
+                            context,
                             entry['loser'],
                             entry['loserScore'],
                             false,
@@ -134,12 +142,17 @@ class GameHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPlayerStats(String name, int score, bool isWinner) {
+  Widget _buildPlayerStats(
+    BuildContext context,
+    String name,
+    int score,
+    bool isWinner,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Expanded(
       child: Column(
-        crossAxisAlignment: isWinner
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.end,
+        crossAxisAlignment:
+            isWinner ? CrossAxisAlignment.start : CrossAxisAlignment.end,
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -147,7 +160,7 @@ class GameHistoryScreen extends StatelessWidget {
               if (isWinner)
                 const Icon(
                   Icons.emoji_events,
-                  color: Colors.amberAccent,
+                  color: Colors.amber,
                   size: 16,
                 ),
               if (isWinner) const SizedBox(width: 4),
@@ -157,7 +170,7 @@ class GameHistoryScreen extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: isWinner ? Colors.amberAccent : Colors.white70,
+                    color: isWinner ? Colors.amber.shade900 : colorScheme.onSurface,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -166,7 +179,10 @@ class GameHistoryScreen extends StatelessWidget {
           ),
           Text(
             "$score pts",
-            style: const TextStyle(color: Colors.white38, fontSize: 13),
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
           ),
         ],
       ),
