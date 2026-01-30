@@ -107,6 +107,14 @@ class _GameScreenState extends State<GameScreen> {
 
     List<List<String>> newRoundHistory = [];
 
+    // Calculate halving thresholds based on target score
+    List<int> thresholds = [];
+    int current = widget.endScore;
+    while (current > 0 && current % 2 == 0) {
+      thresholds.add(current);
+      current = current ~/ 2;
+    }
+
     for (var rawScores in _rawScoreHistory) {
       List<String> roundDisplay = [];
       List<int> actualScoresForThisRound = [];
@@ -120,7 +128,7 @@ class _GameScreenState extends State<GameScreen> {
         String displayStr = "";
         int actualScore = rawScore;
 
-        if (widget.halvingRuleEnabled && (tentativeTotal == 62 || tentativeTotal == 124)) {
+        if (widget.halvingRuleEnabled && thresholds.contains(tentativeTotal)) {
           int halvedTotal = (tentativeTotal / 2).ceil();
           actualScore = halvedTotal - prevTotal;
           displayStr = "$prevTotal + $rawScore = ~~$tentativeTotal~~ $halvedTotal";
@@ -366,6 +374,71 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _showRulesInfo() {
+    List<int> thresholds = [];
+    int current = widget.endScore;
+    while (current > 0 && current % 2 == 0) {
+      thresholds.add(current);
+      current = current ~/ 2;
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Center(child: Text("ACTIVE MATCH RULES", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildRuleInfoRow(context, Icons.outlined_flag_rounded, "Target Score", "${widget.endScore} PTS"),
+            const Divider(height: 32),
+            _buildRuleInfoRow(context, Icons.auto_awesome_rounded, "Halving Logic", 
+              widget.halvingRuleEnabled ? "ON (${thresholds.join(', ')})" : "OFF"),
+            const SizedBox(height: 16),
+            _buildRuleInfoRow(context, Icons.workspace_premium_rounded, "Winner Bonus", 
+              widget.winnerHalfPreviousScoreRule ? "ON (Winner halves previous score)" : "OFF"),
+            const SizedBox(height: 16),
+            _buildRuleInfoRow(context, Icons.gavel_rounded, "Asaf Penalty", 
+              widget.asafPenaltyRuleEnabled ? "ON (${widget.penaltyScore} PTS)" : "OFF"),
+            if (widget.asafPenaltyRuleEnabled) ...[
+              const SizedBox(height: 16),
+              _buildRuleInfoRow(context, Icons.equalizer_rounded, "Tie Penalty", 
+                widget.penaltyOnTieRuleEnabled ? "YES (Penalize on tie)" : "NO"),
+            ],
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text("GOT IT", style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRuleInfoRow(BuildContext context, IconData icon, String title, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black45)),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -383,6 +456,11 @@ class _GameScreenState extends State<GameScreen> {
         appBar: AppBar(
           title: const Text("SCOREBOARD"),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.info_outline_rounded),
+              onPressed: _showRulesInfo,
+              tooltip: "Match Rules",
+            ),
             IconButton(
               icon: const Icon(Icons.close_rounded),
               onPressed: () => Navigator.maybePop(context),

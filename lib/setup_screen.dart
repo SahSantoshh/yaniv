@@ -35,18 +35,20 @@ class SetupScreenState extends State<SetupScreen> {
     super.dispose();
   }
 
-  void _addPlayerField() {
+  void _addPlayerField({bool requestFocus = true}) {
     final focusNode = FocusNode();
     setState(() {
       _playerControllers.add(TextEditingController());
       _playerFocusNodes.add(focusNode);
     });
 
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (focusNode.canRequestFocus) {
-        focusNode.requestFocus();
-      }
-    });
+    if (requestFocus) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (focusNode.canRequestFocus) {
+          focusNode.requestFocus();
+        }
+      });
+    }
   }
 
   void _removePlayerField(int index) {
@@ -76,7 +78,38 @@ class SetupScreenState extends State<SetupScreen> {
       return;
     }
 
-    final endScore = int.tryParse(_endScoreController.text) ?? 124;
+    // Validation for unique player names
+    final nameSet = <String>{};
+    for (var player in players) {
+      final normalizedName = player.name.toLowerCase();
+      if (nameSet.contains(normalizedName)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Duplicate player name found: ${player.name}"),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        return;
+      }
+      nameSet.add(normalizedName);
+    }
+
+    final endScoreStr = _endScoreController.text.trim();
+    final endScore = int.tryParse(endScoreStr) ?? 124;
+
+    if (endScore % 2 != 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Target Score must be an even number"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
 
     Navigator.push(
       context,
@@ -97,8 +130,26 @@ class SetupScreenState extends State<SetupScreen> {
   @override
   void initState() {
     super.initState();
-    _addPlayerField();
-    _addPlayerField();
+    _addPlayerField(); // This one will get focus
+    _addPlayerField(requestFocus: false);
+  }
+
+  String _getHalvingMessage() {
+    final score = int.tryParse(_endScoreController.text) ?? 124;
+    if (score % 2 != 0) return "Total halves at specific thresholds";
+    
+    List<int> thresholds = [];
+    int current = score;
+    while (current > 0 && current % 2 == 0) {
+      thresholds.add(current);
+      current = current ~/ 2;
+    }
+    
+    if (thresholds.isEmpty) return "Total halves at specific thresholds";
+    if (thresholds.length == 1) return "Total halves at ${thresholds[0]}";
+    
+    final last = thresholds.removeLast();
+    return "Total halves at ${thresholds.join(', ')} and $last";
   }
 
   @override
@@ -127,7 +178,7 @@ class SetupScreenState extends State<SetupScreen> {
             ],
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 140),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _buildSectionHeader(context, "PLAYERS", Icons.people_alt_rounded),
@@ -171,6 +222,12 @@ class SetupScreenState extends State<SetupScreen> {
                               controller: _playerControllers[i],
                               focusNode: _playerFocusNodes[i],
                               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                              textInputAction: i == _playerControllers.length - 1 ? TextInputAction.done : TextInputAction.next,
+                              onSubmitted: (_) {
+                                if (i < _playerControllers.length - 1) {
+                                  _playerFocusNodes[i+1].requestFocus();
+                                }
+                              },
                               decoration: const InputDecoration(
                                 hintText: "Enter name...",
                                 fillColor: Colors.transparent,
@@ -258,6 +315,7 @@ class SetupScreenState extends State<SetupScreen> {
                               controller: _endScoreController,
                               keyboardType: TextInputType.number,
                               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 42, letterSpacing: -2),
+                              onChanged: (val) => setState(() {}),
                               decoration: const InputDecoration(
                                 fillColor: Colors.transparent,
                                 contentPadding: EdgeInsets.zero,
@@ -311,7 +369,7 @@ class SetupScreenState extends State<SetupScreen> {
                       _buildFancySwitch(
                         context,
                         "Halving Logic",
-                        "Total halves at exactly 62 or 124",
+                        _getHalvingMessage(),
                         Icons.auto_awesome_rounded,
                         halvingRuleEnabled,
                         (val) => setState(() => halvingRuleEnabled = val),
@@ -376,34 +434,30 @@ class SetupScreenState extends State<SetupScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 40),
+                ElevatedButton(
+                  onPressed: _startGame,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 22),
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 12,
+                    shadowColor: colorScheme.primary.withValues(alpha: 0.4),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("START NEW MATCH", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                      SizedBox(width: 12),
+                      Icon(Icons.play_arrow_rounded, size: 24),
+                    ],
+                  ),
+                ),
               ]),
             ),
           ),
         ],
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: ElevatedButton(
-          onPressed: _startGame,
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 22),
-            backgroundColor: colorScheme.primary,
-            foregroundColor: Colors.white,
-            elevation: 12,
-            shadowColor: colorScheme.primary.withValues(alpha: 0.4),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("START NEW MATCH", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-              SizedBox(width: 12),
-              Icon(Icons.play_arrow_rounded, size: 24),
-            ],
-          ),
-        ),
       ),
     );
   }
