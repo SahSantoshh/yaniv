@@ -180,7 +180,7 @@ class _GameScreenState extends State<GameScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => AlertDialog(
+          builder: (dialogContext) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             title: const Center(child: Text('🏆 MATCH OVER', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1))),
             content: Column(
@@ -208,8 +208,8 @@ class _GameScreenState extends State<GameScreen> {
                   padding: const EdgeInsets.only(bottom: 16),
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context);
+                      Navigator.pop(dialogContext);
+                      Navigator.pop(dialogContext);
                     },
                     child: const Text('BACK TO HOME'),
                   ),
@@ -231,8 +231,8 @@ class _GameScreenState extends State<GameScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (statefulContext, setStateDialog) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(widget.asafPenaltyRuleEnabled ? "ROUND RESULTS" : "ENTER SCORES", 
             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1)),
@@ -295,7 +295,7 @@ class _GameScreenState extends State<GameScreen> {
             TextButton(
               onPressed: () {
                 for (var node in focusNodes) { node.dispose(); }
-                Navigator.pop(context);
+                Navigator.pop(statefulContext);
               },
               child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black38)),
             ),
@@ -327,9 +327,9 @@ class _GameScreenState extends State<GameScreen> {
                 }
 
                 await _addRound(finalScores);
-                if (mounted) {
+                if (statefulContext.mounted) {
                   for (var node in focusNodes) { node.dispose(); }
-                  Navigator.pop(context);
+                  Navigator.pop(statefulContext);
                 }
               },
               child: const Text("SAVE ROUND"),
@@ -343,19 +343,19 @@ class _GameScreenState extends State<GameScreen> {
   void _deleteRound(int index) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("DELETE ROUND?", style: TextStyle(fontWeight: FontWeight.w900)),
         content: Text("Discard all scores from round ${index + 1}?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("KEEP IT")),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text("KEEP IT")),
           TextButton(
             onPressed: () {
               setState(() {
                 _rawScoreHistory.removeAt(index);
                 _recalculateTotals();
               });
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
             },
             child: const Text("DELETE", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
@@ -371,7 +371,7 @@ class _GameScreenState extends State<GameScreen> {
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop && !gameOver) {
           final confirm = await _showEndGameDialog(context);
-          if (confirm == true && mounted) {
+          if (confirm == true && context.mounted) {
             setState(() => _forceEnd = true);
             Navigator.pop(context);
           }
@@ -589,14 +589,14 @@ class _GameScreenState extends State<GameScreen> {
 Future<bool?> _showEndGameDialog(BuildContext context) {
   return showDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (dialogContext) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Text('END MATCH?', style: TextStyle(fontWeight: FontWeight.w900)),
       content: const Text('All current scores will be lost. Ready to quit?'),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('STAY')),
+        TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('STAY')),
         TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
           child: const Text('QUIT', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
         ),
       ],
