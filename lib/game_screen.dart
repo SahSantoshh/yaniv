@@ -234,8 +234,8 @@ class _GameScreenState extends State<GameScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (statefulContext, setStateDialog) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text(widget.asafPenaltyRuleEnabled ? "ROUND RESULTS" : "ENTER SCORES", 
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1)),
+          title: const Text("ROUND RESULTS", 
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -278,7 +278,7 @@ class _GameScreenState extends State<GameScreen> {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                     decoration: InputDecoration(
                       labelText: widget.players[i].name,
-                      hintText: "0",
+                      hintText: "Enter hand score",
                       prefixIcon: const Icon(Icons.calculate_outlined),
                     ),
                     onSubmitted: (_) {
@@ -323,7 +323,9 @@ class _GameScreenState extends State<GameScreen> {
                     }
                   }
                 } else {
-                  finalScores = handTotals.map((s) => RoundScore(s)).toList();
+                  // Automatically find the winner(s) with the lowest hand total
+                  int minHand = handTotals.reduce((a, b) => a < b ? a : b);
+                  finalScores = handTotals.map((s) => RoundScore(s == minHand ? 0 : s)).toList();
                 }
 
                 await _addRound(finalScores);
