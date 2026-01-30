@@ -13,19 +13,14 @@ class SetupScreen extends StatefulWidget {
 
 class SetupScreenState extends State<SetupScreen> {
   final List<TextEditingController> _playerControllers = [];
-  final List<FocusNode> _playerFocusNodes = []; // Added FocusNodes
-  final TextEditingController _endScoreController = TextEditingController(
-    text: '124',
-  );
+  final List<FocusNode> _playerFocusNodes = [];
+  final TextEditingController _endScoreController = TextEditingController(text: '124');
   bool halvingRuleEnabled = true;
   bool winnerHalfPreviousScoreRule = true;
 
-  // Asaf / Multiple Winner Rules
   bool asafPenaltyRuleEnabled = false;
   bool penaltyOnTieRuleEnabled = true;
-  final TextEditingController _penaltyScoreController = TextEditingController(
-    text: '30',
-  );
+  final TextEditingController _penaltyScoreController = TextEditingController(text: '30');
 
   @override
   void dispose() {
@@ -47,11 +42,19 @@ class SetupScreenState extends State<SetupScreen> {
       _playerFocusNodes.add(focusNode);
     });
 
-    // Auto-focus the new field after build
-    Future.delayed(Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 100), () {
       if (focusNode.canRequestFocus) {
         focusNode.requestFocus();
       }
+    });
+  }
+
+  void _removePlayerField(int index) {
+    setState(() {
+      _playerControllers[index].dispose();
+      _playerFocusNodes[index].dispose();
+      _playerControllers.removeAt(index);
+      _playerFocusNodes.removeAt(index);
     });
   }
 
@@ -61,7 +64,12 @@ class SetupScreenState extends State<SetupScreen> {
         .map((c) => Player(c.text.trim()))
         .toList();
 
-    if (players.isEmpty) return;
+    if (players.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Add at least 2 players to start")),
+      );
+      return;
+    }
 
     final endScore = int.tryParse(_endScoreController.text) ?? 124;
 
@@ -90,170 +98,162 @@ class SetupScreenState extends State<SetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
-        elevation: 2,
-        title: Text("Yaniv Score Setup"),
+        title: const Text("Yaniv Setup", style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.history),
-            tooltip: 'View Game History',
+            icon: const Icon(Icons.history),
             onPressed: () {
-              // Focus.of(context).unfocus();
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => GameHistoryScreen()),
+                MaterialPageRoute(builder: (_) => const GameHistoryScreen()),
               );
             },
           ),
         ],
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Text("Players", style: TextStyle(fontSize: 18)),
-              SizedBox(height: 16),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: _playerControllers.length,
-                itemBuilder: (_, i) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: TextField(
-                      controller: _playerControllers[i],
-                      decoration: InputDecoration(
-                        labelText: "Player ${i + 1} Name",
-                        border: OutlineInputBorder(),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildSectionTitle("Players"),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    ...List.generate(_playerControllers.length, (i) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _playerControllers[i],
+                                focusNode: _playerFocusNodes[i],
+                                decoration: InputDecoration(
+                                  hintText: "Player ${i + 1} Name",
+                                  prefixIcon: const Icon(Icons.person),
+                                ),
+                              ),
+                            ),
+                            if (_playerControllers.length > 2)
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                                onPressed: () => _removePlayerField(i),
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
+                    TextButton.icon(
+                      onPressed: _addPlayerField,
+                      icon: const Icon(Icons.add),
+                      label: const Text("Add Player"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildSectionTitle("Game Rules"),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _endScoreController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: "End Score (Limit)",
+                        prefixIcon: Icon(Icons.outlined_flag),
                       ),
                     ),
-                  );
-                },
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  side: BorderSide(color: Colors.deepPurple),
-                  elevation: 0,
-                ),
-                onPressed: _addPlayerField,
-                child: Text("Add Player"),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: _endScoreController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "End Score",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      "Enable Halving Rule (if total hits 62 or 124)",
+                    const SizedBox(height: 16),
+                    _buildSwitchTile(
+                      "Halving Rule",
+                      "Score halves if total hits 62 or 124",
+                      halvingRuleEnabled,
+                      (val) => setState(() => halvingRuleEnabled = val),
                     ),
-                  ),
-                  Switch(
-                    value: halvingRuleEnabled,
-                    onChanged: (val) {
-                      setState(() {
-                        halvingRuleEnabled = val;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(child: Text("Winner halves previous total score")),
-                  Switch(
-                    value: winnerHalfPreviousScoreRule,
-                    onChanged: (val) {
-                      setState(() {
-                        winnerHalfPreviousScoreRule = val;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      "Enable Asaf (Penalty) Rule\n(Allows multiple winners/undercuts)",
+                    _buildSwitchTile(
+                      "Winner's Bonus",
+                      "Winner halves their previous total score",
+                      winnerHalfPreviousScoreRule,
+                      (val) => setState(() => winnerHalfPreviousScoreRule = val),
                     ),
-                  ),
-                  Switch(
-                    value: asafPenaltyRuleEnabled,
-                    onChanged: (val) {
-                      setState(() {
-                        asafPenaltyRuleEnabled = val;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              if (asafPenaltyRuleEnabled) ...[
-                Padding(
-                  padding: const EdgeInsets.only(left: 16.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text("Penalize Caller on Tie or Undercut?"),
-                          ),
-                          Switch(
-                            value: penaltyOnTieRuleEnabled,
-                            onChanged: (val) {
-                              setState(() {
-                                penaltyOnTieRuleEnabled = val;
-                              });
-                            },
-                          ),
-                        ],
+                    _buildSwitchTile(
+                      "Asaf Penalty",
+                      "Enable penalty for unsuccessful calls",
+                      asafPenaltyRuleEnabled,
+                      (val) => setState(() => asafPenaltyRuleEnabled = val),
+                    ),
+                    if (asafPenaltyRuleEnabled) ...[
+                      const Divider(),
+                      _buildSwitchTile(
+                        "Tie Penalty",
+                        "Penalize caller even on a tie",
+                        penaltyOnTieRuleEnabled,
+                        (val) => setState(() => penaltyOnTieRuleEnabled = val),
                       ),
                       TextField(
                         controller: _penaltyScoreController,
                         keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: "Penalty Score (default 30)",
-                          border: OutlineInputBorder(),
+                        decoration: const InputDecoration(
+                          labelText: "Penalty Points",
+                          prefixIcon: Icon(Icons.warning_amber),
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ],
-              SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 16,
-                ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size.fromHeight(50),
-                    fixedSize: Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: _startGame,
-                  child: Text("Start Game"),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(60),
+              ),
+              onPressed: _startGame,
+              child: const Text("START GAME", style: TextStyle(fontSize: 18, letterSpacing: 1.2)),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.1,
+          color: Colors.white70,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
+    return SwitchListTile(
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      value: value,
+      onChanged: onChanged,
+      contentPadding: EdgeInsets.zero,
     );
   }
 }
