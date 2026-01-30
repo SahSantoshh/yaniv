@@ -76,7 +76,7 @@ class _GameScreenState extends State<GameScreen> {
               text: parts[1],
               style: baseStyle.copyWith(
                 decoration: TextDecoration.lineThrough,
-                color: baseTextColor.withOpacity(0.5),
+                color: baseTextColor.withValues(alpha: 0.5),
               ),
             ),
             TextSpan(
@@ -202,6 +202,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _showAddScoresDialog() {
     final controllers = List.generate(widget.players.length, (_) => TextEditingController());
+    final focusNodes = List.generate(widget.players.length, (_) => FocusNode());
     int? selectedCallerIndex;
     String? errorMessage;
 
@@ -237,18 +238,33 @@ class _GameScreenState extends State<GameScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: TextField(
                     controller: controllers[i],
+                    focusNode: focusNodes[i],
                     keyboardType: TextInputType.number,
+                    textInputAction: i == widget.players.length - 1 ? TextInputAction.done : TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: widget.players[i].name,
                       hintText: "Enter hand score",
                     ),
+                    onSubmitted: (_) {
+                      if (i < widget.players.length - 1) {
+                        focusNodes[i + 1].requestFocus();
+                      }
+                    },
                   ),
                 )),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+            TextButton(
+              onPressed: () {
+                for (var node in focusNodes) {
+                  node.dispose();
+                }
+                Navigator.pop(context);
+              },
+              child: const Text("Cancel"),
+            ),
             ElevatedButton(
               onPressed: () async {
                 if (widget.asafPenaltyRuleEnabled && selectedCallerIndex == null) {
@@ -277,7 +293,12 @@ class _GameScreenState extends State<GameScreen> {
                 }
 
                 await _addRound(finalScores);
-                if (mounted) Navigator.pop(context);
+                if (mounted) {
+                  for (var node in focusNodes) {
+                    node.dispose();
+                  }
+                  Navigator.pop(context);
+                }
               },
               child: const Text("Save"),
             ),
@@ -313,8 +334,6 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return PopScope(
       canPop: gameOver || _forceEnd,
       onPopInvokedWithResult: (didPop, result) async {
@@ -358,7 +377,7 @@ class _GameScreenState extends State<GameScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-      color: colorScheme.surfaceVariant,
+      color: colorScheme.surfaceContainerHighest,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: widget.players.map((p) {
@@ -378,7 +397,7 @@ class _GameScreenState extends State<GameScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isLeading ? Colors.amber : (isDanger ? Colors.redAccent : colorScheme.outline.withOpacity(0.2)),
+                          color: isLeading ? Colors.amber : (isDanger ? Colors.redAccent : colorScheme.outline.withValues(alpha: 0.2)),
                           width: 3,
                         ),
                         color: colorScheme.surface,
@@ -417,7 +436,7 @@ class _GameScreenState extends State<GameScreen> {
     final colorScheme = theme.colorScheme;
 
     if (roundHistory.isEmpty) {
-      return Center(child: Text("No rounds played yet", style: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5))));
+      return Center(child: Text("No rounds played yet", style: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5))));
     }
 
     return ListView.builder(
@@ -442,7 +461,7 @@ class _GameScreenState extends State<GameScreen> {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: isWinner ? BoxDecoration(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.amber.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ) : null,
                   child: Text(
