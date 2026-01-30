@@ -517,48 +517,52 @@ class _GameScreenState extends State<GameScreen> {
           bool isDanger = total > widget.endScore * 0.8;
 
           return Expanded(
-            child: Column(
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 54,
-                      height: 54,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isLeading ? Colors.amber : (isDanger ? Colors.redAccent : Colors.white24),
-                          width: 2.5,
+            child: Tooltip(
+              message: p.name,
+              triggerMode: TooltipTriggerMode.longPress,
+              child: Column(
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isLeading ? Colors.amber : (isDanger ? Colors.redAccent : Colors.white24),
+                            width: 2.5,
+                          ),
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
-                      child: Center(
-                        child: Text(
-                          p.name[0].toUpperCase(),
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
+                        child: Center(
+                          child: Text(
+                            p.name[0].toUpperCase(),
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
+                          ),
                         ),
                       ),
-                    ),
-                    if (isLeading)
-                      const Positioned(top: -12, child: Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 20)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(p.name.toUpperCase(), 
-                  overflow: TextOverflow.ellipsis, 
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.white70, letterSpacing: 0.5)),
-                const SizedBox(height: 2),
-                Text(
-                  "$total",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: isDanger ? Colors.redAccent : (isLeading ? Colors.amber : Colors.white),
+                      if (isLeading)
+                        const Positioned(top: -12, child: Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 20)),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Text(p.name.toUpperCase(), 
+                    overflow: TextOverflow.ellipsis, 
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.white70, letterSpacing: 0.5)),
+                  const SizedBox(height: 2),
+                  Text(
+                    "$total",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: isDanger ? Colors.redAccent : (isLeading ? Colors.amber : Colors.white),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }).toList(),
