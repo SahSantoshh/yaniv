@@ -8,6 +8,8 @@ Future<void> main() async {
 }
 
 class YanivScoreApp extends StatelessWidget {
+  const YanivScoreApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
