@@ -3,11 +3,21 @@ import 'package:yaniv/player.dart';
 
 import 'game_history.dart';
 
+class RoundScore {
+  final int value;
+  final bool isPenalty;
+
+  const RoundScore(this.value, {this.isPenalty = false});
+}
+
 class GameScreen extends StatefulWidget {
   final List<Player> players;
   final int endScore;
   final bool halvingRuleEnabled;
   final bool winnerHalfPreviousScoreRule;
+  final bool asafPenaltyRuleEnabled;
+  final bool penaltyOnTieRuleEnabled;
+  final int penaltyScore;
 
   const GameScreen({
     super.key,
@@ -15,6 +25,9 @@ class GameScreen extends StatefulWidget {
     required this.endScore,
     required this.halvingRuleEnabled,
     required this.winnerHalfPreviousScoreRule,
+    required this.asafPenaltyRuleEnabled,
+    required this.penaltyOnTieRuleEnabled,
+    required this.penaltyScore,
   });
 
   @override
@@ -23,69 +36,62 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   bool _forceEnd = false;
-  final List<List<int>> _rawScoreHistory = [];
+  final List<List<RoundScore>> _rawScoreHistory = [];
   final List<List<String>> roundHistory = [];
 
   Widget _scoreDisplay(String scoreStr) {
+    bool isPenalty = false;
+    if (scoreStr.startsWith("!!") && scoreStr.endsWith("!!")) {
+      isPenalty = true;
+      scoreStr = scoreStr.substring(2, scoreStr.length - 2);
+    }
+
+    TextStyle baseStyle = TextStyle(
+      fontSize: 13,
+      color: isPenalty ? Colors.red : Colors.black,
+      fontWeight: isPenalty ? FontWeight.bold : FontWeight.normal,
+    );
+
     if (scoreStr.contains('~~')) {
       final parts = scoreStr.split('~~');
       // Format usually: "Prefix ~~Strikethrough~~ Suffix"
-      // e.g. "30 + 32 = ~~62~~ 31" -> ["30 + 32 = ", "62", " 31"]
-      // e.g. "~~40~~ 20" -> ["", "40", " 20"]
 
-      if (parts.length < 3) return Text(scoreStr);
+      if (parts.length < 3) {
+        return Text(scoreStr, style: baseStyle, textAlign: TextAlign.center);
+      }
 
       return RichText(
         textAlign: TextAlign.center,
         text: TextSpan(
-          style: TextStyle(color: Colors.black, fontSize: 13),
+          style: baseStyle,
           children: [
             TextSpan(text: parts[0]), // Prefix
             TextSpan(
               text: parts[1], // Strikethrough part
-              style: TextStyle(
+              style: baseStyle.copyWith(
                 decoration: TextDecoration.lineThrough,
-                color: Colors.grey,
+                color: isPenalty ? Colors.red : Colors.grey,
               ),
             ),
             TextSpan(
               text: parts[2], // Suffix
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: baseStyle.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),
       );
     } else {
-      return Text(
-        scoreStr,
-        style: TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
-        textAlign: TextAlign.center,
-      );
+      return Text(scoreStr, style: baseStyle, textAlign: TextAlign.center);
     }
   }
 
   /// Returns true if round added successfully, false if invalid (multiple winners)
-  Future<bool> _addRound(List<int> inputScores) async {
-    final winnersCount = inputScores.where((s) => s == 0).length;
-
-    if (winnersCount != 1) {
-      // Show error dialog, multiple winners found
-      await showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: Text('Invalid Scores'),
-          content: Text(
-            'There must be exactly one winner with score 0. Please adjust scores.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('OK'),
-            ),
-          ],
-        ),
-      );
-      return false; // Indicate failure
+  Future<bool> _addRound(List<RoundScore> inputScores) async {
+    // Validation removed to support multiple winners/Asaf rule
+    if (inputScores.every((s) => s.value > 0) &&
+        !widget.asafPenaltyRuleEnabled) {
+      // Optional: Warning if NO winner in manual mode?
+      // For now, we trust the user input or the Asaf dialog logic.
     }
 
     _rawScoreHistory.add(inputScores);
@@ -154,54 +160,179 @@ class _GameScreenState extends State<GameScreen> {
       widget.players.length,
       (_) => TextEditingController(),
     );
+    int? selectedCallerIndex;
+    String? errorMessage;
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text("Enter Round Scores"),
-        content: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.7,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(widget.players.length, (i) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: TextField(
-                    controller: controllers[i],
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: widget.players[i].name,
-                      border: OutlineInputBorder(),
-                    ),
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: Text(
+                widget.asafPenaltyRuleEnabled
+                    ? "Enter Hand Totals"
+                    : "Enter Round Scores",
+              ),
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.7,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Text(
+                            errorMessage!,
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      if (widget.asafPenaltyRuleEnabled) ...[
+                        Text(
+                          "Who Called Yaniv?",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8.0,
+                          children: List.generate(widget.players.length, (i) {
+                            return ChoiceChip(
+                              label: Text(widget.players[i].name),
+                              selected: selectedCallerIndex == i,
+                              onSelected: (bool selected) {
+                                setStateDialog(() {
+                                  selectedCallerIndex = selected ? i : null;
+                                  errorMessage = null;
+                                });
+                              },
+                            );
+                          }),
+                        ),
+                        Divider(),
+                        Text(
+                          "Hand Scores",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                      ...List.generate(widget.players.length, (i) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: TextField(
+                            controller: controllers[i],
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: widget.asafPenaltyRuleEnabled
+                                  ? "${widget.players[i].name}'s Hand"
+                                  : widget.players[i].name,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
                   ),
-                );
-              }),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final scores = controllers
-                  .map((c) => int.tryParse(c.text) ?? 0)
-                  .toList();
-              bool success = await _addRound(scores);
-              if (success && mounted) {
-                Navigator.pop(context);
-              }
-              // else keep dialog open to fix input
-            },
-            child: Text("Save"),
-          ),
-        ],
-      ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (widget.asafPenaltyRuleEnabled) {
+                      if (selectedCallerIndex == null) {
+                        setStateDialog(() {
+                          errorMessage = "Please select who called Yaniv.";
+                        });
+                        return;
+                      }
+
+                      List<int> handTotals = controllers
+                          .map((c) => int.tryParse(c.text) ?? 0)
+                          .toList();
+
+                      int callerHand = handTotals[selectedCallerIndex!];
+                      // Note: if list is empty reduce fails, but players > 0 assured by setup
+                      int minHand = handTotals.reduce((a, b) => a < b ? a : b);
+
+                      bool isAsaf = false;
+                      // Check if anyone underecut (strictly lower)
+                      if (handTotals.any((s) => s < callerHand)) {
+                        isAsaf = true;
+                      }
+                      // Check tie
+                      else if (handTotals.where((s) => s == callerHand).length >
+                          1) {
+                        if (widget.penaltyOnTieRuleEnabled) {
+                          isAsaf = true;
+                        } else {
+                          isAsaf = false;
+                        }
+                      }
+
+                      List<RoundScore> finalScores = [];
+                      for (int i = 0; i < widget.players.length; i++) {
+                        int hand = handTotals[i];
+
+                        if (i == selectedCallerIndex) {
+                          if (isAsaf) {
+                            finalScores.add(
+                              RoundScore(
+                                hand + widget.penaltyScore,
+                                isPenalty: true,
+                              ),
+                            );
+                          } else {
+                            finalScores.add(RoundScore(0));
+                          }
+                        } else {
+                          if (isAsaf) {
+                            // If Asaf, winner(s) with min score get 0
+                            if (hand == minHand) {
+                              finalScores.add(RoundScore(0));
+                            } else {
+                              finalScores.add(RoundScore(hand));
+                            }
+                          } else {
+                            // Normal win for caller.
+                            // Handle Shared Win case (Tie check)
+                            if (!widget.penaltyOnTieRuleEnabled &&
+                                hand == callerHand) {
+                              finalScores.add(RoundScore(0));
+                            } else {
+                              finalScores.add(RoundScore(hand));
+                            }
+                          }
+                        }
+                      }
+
+                      bool success = await _addRound(finalScores);
+                      if (success && mounted) {
+                        Navigator.pop(context);
+                      }
+                    } else {
+                      // Manual Mode
+                      final scores = controllers
+                          .map((c) => RoundScore(int.tryParse(c.text) ?? 0))
+                          .toList();
+                      bool success = await _addRound(scores);
+                      if (success && mounted) {
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                  child: Text("Save"),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -256,7 +387,7 @@ class _GameScreenState extends State<GameScreen> {
       for (int i = 0; i < widget.players.length; i++) {
         Player player = widget.players[i];
         int prevTotal = player.totals.isEmpty ? 0 : player.totals.last;
-        int rawScore = rawScores[i];
+        int rawScore = rawScores[i].value; // Access .value
         int tentativeTotal = prevTotal + rawScore;
 
         String displayStr = "";
@@ -278,6 +409,11 @@ class _GameScreenState extends State<GameScreen> {
           displayStr = "$prevTotal + $rawScore = $tentativeTotal";
         }
 
+        // Wrap penalty in markers
+        if (rawScores[i].isPenalty) {
+          displayStr = "!!$displayStr!!";
+        }
+
         actualScoresForThisRound.add(actualScore);
         roundDisplay.add(displayStr);
       }
@@ -285,11 +421,13 @@ class _GameScreenState extends State<GameScreen> {
       // Check for winner halving rule
       // If enabled, the winner of this round (score 0) might get their PREVIOUS total halved.
       if (widget.winnerHalfPreviousScoreRule) {
-        // Find winner index in the RAW input for this round (whoever put 0)
-        // logic: exactly one winner enforced by _addRound
-        int winnerIndex = rawScores.indexOf(0);
+        // Find ALL winners (score 0)
+        List<int> winnerIndices = [];
+        for (int i = 0; i < rawScores.length; i++) {
+          if (rawScores[i].value == 0) winnerIndices.add(i); // Access .value
+        }
 
-        if (winnerIndex != -1) {
+        for (int winnerIndex in winnerIndices) {
           Player winner = widget.players[winnerIndex];
 
           // Winner's total BEFORE this round
@@ -394,8 +532,9 @@ class _GameScreenState extends State<GameScreen> {
                         // Let's refine winner search: The winner is the one who played 0.
                         // We don't have the raw scores here easily unless we look at _rawScoreHistory[roundIndex]
                         // Accessing raw history is cleaner.
+                        // Accessing raw history is cleaner.
                         int rawWinnerIndex = _rawScoreHistory[roundIndex]
-                            .indexOf(0);
+                            .indexWhere((s) => s.value == 0);
 
                         return DataRow(
                           cells: [

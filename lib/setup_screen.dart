@@ -13,15 +13,45 @@ class SetupScreen extends StatefulWidget {
 
 class SetupScreenState extends State<SetupScreen> {
   final List<TextEditingController> _playerControllers = [];
+  final List<FocusNode> _playerFocusNodes = []; // Added FocusNodes
   final TextEditingController _endScoreController = TextEditingController(
     text: '124',
   );
   bool halvingRuleEnabled = true;
   bool winnerHalfPreviousScoreRule = true;
 
+  // Asaf / Multiple Winner Rules
+  bool asafPenaltyRuleEnabled = false;
+  bool penaltyOnTieRuleEnabled = true;
+  final TextEditingController _penaltyScoreController = TextEditingController(
+    text: '30',
+  );
+
+  @override
+  void dispose() {
+    for (var node in _playerFocusNodes) {
+      node.dispose();
+    }
+    _endScoreController.dispose();
+    _penaltyScoreController.dispose();
+    for (var controller in _playerControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
   void _addPlayerField() {
+    final focusNode = FocusNode();
     setState(() {
       _playerControllers.add(TextEditingController());
+      _playerFocusNodes.add(focusNode);
+    });
+
+    // Auto-focus the new field after build
+    Future.delayed(Duration(milliseconds: 100), () {
+      if (focusNode.canRequestFocus) {
+        focusNode.requestFocus();
+      }
     });
   }
 
@@ -43,6 +73,9 @@ class SetupScreenState extends State<SetupScreen> {
           endScore: endScore,
           halvingRuleEnabled: halvingRuleEnabled,
           winnerHalfPreviousScoreRule: winnerHalfPreviousScoreRule,
+          asafPenaltyRuleEnabled: asafPenaltyRuleEnabled,
+          penaltyOnTieRuleEnabled: penaltyOnTieRuleEnabled,
+          penaltyScore: int.tryParse(_penaltyScoreController.text) ?? 30,
         ),
       ),
     );
@@ -58,8 +91,9 @@ class SetupScreenState extends State<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(elevation: 2,
+      resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+        elevation: 2,
         title: Text("Yaniv Score Setup"),
         actions: [
           IconButton(
@@ -81,7 +115,7 @@ class SetupScreenState extends State<SetupScreen> {
           child: Column(
             children: [
               Text("Players", style: TextStyle(fontSize: 18)),
-              SizedBox(height: 16,),
+              SizedBox(height: 16),
               ListView.builder(
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
@@ -102,7 +136,7 @@ class SetupScreenState extends State<SetupScreen> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   side: BorderSide(color: Colors.deepPurple),
-                  elevation: 0
+                  elevation: 0,
                 ),
                 onPressed: _addPlayerField,
                 child: Text("Add Player"),
@@ -120,7 +154,9 @@ class SetupScreenState extends State<SetupScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text("Enable Halving Rule (if total hits 62 or 124)"),
+                    child: Text(
+                      "Enable Halving Rule (if total hits 62 or 124)",
+                    ),
                   ),
                   Switch(
                     value: halvingRuleEnabled,
@@ -145,23 +181,75 @@ class SetupScreenState extends State<SetupScreen> {
                   ),
                 ],
               ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      "Enable Asaf (Penalty) Rule\n(Allows multiple winners/undercuts)",
+                    ),
+                  ),
+                  Switch(
+                    value: asafPenaltyRuleEnabled,
+                    onChanged: (val) {
+                      setState(() {
+                        asafPenaltyRuleEnabled = val;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              if (asafPenaltyRuleEnabled) ...[
+                Padding(
+                  padding: const EdgeInsets.only(left: 16.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text("Penalize Caller on Tie or Undercut?"),
+                          ),
+                          Switch(
+                            value: penaltyOnTieRuleEnabled,
+                            onChanged: (val) {
+                              setState(() {
+                                penaltyOnTieRuleEnabled = val;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      TextField(
+                        controller: _penaltyScoreController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: "Penalty Score (default 30)",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               SizedBox(height: 16),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 16,
+                ),
                 child: ElevatedButton(
-
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: Size.fromHeight(50),
-                      fixedSize: Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size.fromHeight(50),
+                    fixedSize: Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    onPressed: _startGame, child: Text("Start Game")),
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: _startGame,
+                  child: Text("Start Game"),
+                ),
               ),
-
             ],
           ),
         ),
