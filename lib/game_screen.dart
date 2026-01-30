@@ -49,7 +49,7 @@ class _GameScreenState extends State<GameScreen> {
         : b,
   );
 
-  Widget _scoreDisplay(String scoreStr) {
+  Widget _scoreDisplay(String scoreStr, Color baseTextColor) {
     bool isPenalty = false;
     if (scoreStr.startsWith("!!") && scoreStr.endsWith("!!")) {
       isPenalty = true;
@@ -58,7 +58,7 @@ class _GameScreenState extends State<GameScreen> {
 
     TextStyle baseStyle = TextStyle(
       fontSize: 14,
-      color: isPenalty ? Colors.redAccent : Colors.white70,
+      color: isPenalty ? Colors.redAccent : baseTextColor,
       fontWeight: isPenalty ? FontWeight.bold : FontWeight.normal,
     );
 
@@ -76,12 +76,12 @@ class _GameScreenState extends State<GameScreen> {
               text: parts[1],
               style: baseStyle.copyWith(
                 decoration: TextDecoration.lineThrough,
-                color: Colors.white38,
+                color: baseTextColor.withOpacity(0.5),
               ),
             ),
             TextSpan(
               text: parts[2],
-              style: baseStyle.copyWith(fontWeight: FontWeight.bold, color: Colors.amberAccent),
+              style: baseStyle.copyWith(fontWeight: FontWeight.bold, color: Colors.deepPurple),
             ),
           ],
         ),
@@ -347,16 +347,18 @@ class _GameScreenState extends State<GameScreen> {
           onPressed: _showAddScoresDialog,
           label: const Text("ADD ROUND"),
           icon: const Icon(Icons.add),
-          backgroundColor: theme.colorScheme.primary,
         ) : null,
       ),
     );
   }
 
   Widget _buildStandings() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-      color: Theme.of(context).colorScheme.surface,
+      color: colorScheme.surfaceVariant,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: widget.players.map((p) {
@@ -376,10 +378,10 @@ class _GameScreenState extends State<GameScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isLeading ? Colors.amberAccent : (isDanger ? Colors.redAccent : Colors.white24),
+                          color: isLeading ? Colors.amber : (isDanger ? Colors.redAccent : colorScheme.outline.withOpacity(0.2)),
                           width: 3,
                         ),
-                        color: Colors.white10,
+                        color: colorScheme.surface,
                       ),
                       child: Center(
                         child: Text(
@@ -389,7 +391,7 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                     ),
                     if (isLeading)
-                      const Positioned(top: -5, right: -5, child: Icon(Icons.emoji_events, color: Colors.amberAccent, size: 24)),
+                      const Positioned(top: -5, right: -5, child: Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 24)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -399,7 +401,7 @@ class _GameScreenState extends State<GameScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: isDanger ? Colors.redAccent : (isLeading ? Colors.amberAccent : Colors.white),
+                    color: isDanger ? Colors.redAccent : (isLeading ? Colors.amber.shade800 : colorScheme.onSurface),
                   ),
                 ),
               ],
@@ -411,8 +413,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildHistoryList() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     if (roundHistory.isEmpty) {
-      return const Center(child: Text("No rounds played yet", style: TextStyle(color: Colors.white38)));
+      return Center(child: Text("No rounds played yet", style: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5))));
     }
 
     return ListView.builder(
@@ -426,9 +431,9 @@ class _GameScreenState extends State<GameScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: ExpansionTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.white10,
+              backgroundColor: colorScheme.primaryContainer,
               radius: 15,
-              child: Text("${reversedIndex + 1}", style: const TextStyle(fontSize: 12, color: Colors.white70)),
+              child: Text("${reversedIndex + 1}", style: TextStyle(fontSize: 12, color: colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold)),
             ),
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -437,14 +442,14 @@ class _GameScreenState extends State<GameScreen> {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: isWinner ? BoxDecoration(
-                    color: Colors.amberAccent.withOpacity(0.2),
+                    color: Colors.amber.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(4),
                   ) : null,
                   child: Text(
                     "${_rawScoreHistory[reversedIndex][i].value}",
                     style: TextStyle(
                       fontWeight: isWinner ? FontWeight.bold : FontWeight.normal,
-                      color: isWinner ? Colors.amberAccent : Colors.white70,
+                      color: isWinner ? Colors.amber.shade900 : colorScheme.onSurface,
                     ),
                   ),
                 );
@@ -463,8 +468,8 @@ class _GameScreenState extends State<GameScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(widget.players[i].name, style: const TextStyle(fontSize: 13, color: Colors.white60)),
-                        _scoreDisplay(displayScores[i]),
+                        Text(widget.players[i].name, style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
+                        _scoreDisplay(displayScores[i], colorScheme.onSurface),
                       ],
                     ),
                   )),
@@ -487,7 +492,7 @@ Future<bool?> _showEndGameDialog(BuildContext context) {
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Keep Playing')),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
           onPressed: () => Navigator.of(context).pop(true),
           child: const Text('End Game'),
         ),

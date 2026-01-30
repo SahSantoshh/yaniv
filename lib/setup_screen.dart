@@ -101,7 +101,7 @@ class SetupScreenState extends State<SetupScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         title: const Text("Yaniv Setup", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
