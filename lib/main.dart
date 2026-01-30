@@ -17,18 +17,19 @@ class YanivScoreApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
-          primary: Colors.deepPurpleAccent,
-          secondary: Colors.amberAccent,
-          surface: const Color(0xFF1E1E2C),
-          background: const Color(0xFF121212),
+          brightness: Brightness.light,
+          primary: Colors.deepPurple,
+          secondary: Colors.amber,
+          surface: const Color(0xFFF8F9FA),
+          surfaceVariant: const Color(0xFFEEEEF2),
         ),
+        scaffoldBackgroundColor: const Color(0xFFF0F2F5),
         cardTheme: CardThemeData(
-          color: const Color(0xFF2A2A3D),
-          elevation: 4,
+          color: Colors.white,
+          elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -44,18 +45,18 @@ class YanivScoreApp extends StatelessWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF2A2A3D),
+          fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(color: Colors.grey.shade300),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.white10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.deepPurpleAccent, width: 2),
+            borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
           ),
         ),
       ),

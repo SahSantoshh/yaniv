@@ -9,16 +9,17 @@ class GameHistoryScreen extends StatelessWidget {
     final now = DateTime.now();
     final diff = now.difference(date);
 
-    if (diff.inDays == 0)
+    if (diff.inDays == 0) {
       return "Today ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
-    if (diff.inDays == 1) return "Yesterday";
+    }
+    if (diff.inDays == 1) {
+      return "Yesterday";
+    }
     return "${date.day}/${date.month}/${date.year}";
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
