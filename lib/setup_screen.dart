@@ -14,13 +14,19 @@ class SetupScreen extends StatefulWidget {
 class SetupScreenState extends State<SetupScreen> {
   final List<TextEditingController> _playerControllers = [];
   final List<FocusNode> _playerFocusNodes = [];
-  final TextEditingController _endScoreController = TextEditingController(text: '124');
+  final TextEditingController _endScoreController = TextEditingController(
+    text: '124',
+  );
   bool halvingRuleEnabled = true;
   bool winnerHalfPreviousScoreRule = true;
 
   bool asafPenaltyRuleEnabled = false;
   bool penaltyOnTieRuleEnabled = true;
-  final TextEditingController _penaltyScoreController = TextEditingController(text: '30');
+  final TextEditingController _penaltyScoreController = TextEditingController(
+    text: '30',
+  );
+  final TextEditingController _newPlayerJoinPenaltyController =
+      TextEditingController(text: '10');
 
   @override
   void dispose() {
@@ -29,6 +35,7 @@ class SetupScreenState extends State<SetupScreen> {
     }
     _endScoreController.dispose();
     _penaltyScoreController.dispose();
+    _newPlayerJoinPenaltyController.dispose();
     for (var controller in _playerControllers) {
       controller.dispose();
     }
@@ -60,6 +67,18 @@ class SetupScreenState extends State<SetupScreen> {
     });
   }
 
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) {
+        newIndex -= 1;
+      }
+      final controller = _playerControllers.removeAt(oldIndex);
+      _playerControllers.insert(newIndex, controller);
+      final focusNode = _playerFocusNodes.removeAt(oldIndex);
+      _playerFocusNodes.insert(newIndex, focusNode);
+    });
+  }
+
   void _startGame() {
     final players = _playerControllers
         .where((c) => c.text.trim().isNotEmpty)
@@ -71,7 +90,9 @@ class SetupScreenState extends State<SetupScreen> {
         SnackBar(
           content: const Text("Add at least 2 players to start"),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -87,7 +108,9 @@ class SetupScreenState extends State<SetupScreen> {
           SnackBar(
             content: Text("Duplicate player name found: ${player.name}"),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -104,7 +127,9 @@ class SetupScreenState extends State<SetupScreen> {
         SnackBar(
           content: const Text("Target Score must be an even number"),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -122,6 +147,8 @@ class SetupScreenState extends State<SetupScreen> {
           asafPenaltyRuleEnabled: asafPenaltyRuleEnabled,
           penaltyOnTieRuleEnabled: penaltyOnTieRuleEnabled,
           penaltyScore: int.tryParse(_penaltyScoreController.text) ?? 30,
+          newPlayerJoinPenalty:
+              int.tryParse(_newPlayerJoinPenaltyController.text) ?? 10,
         ),
       ),
     );
@@ -137,17 +164,17 @@ class SetupScreenState extends State<SetupScreen> {
   String _getHalvingMessage() {
     final score = int.tryParse(_endScoreController.text) ?? 124;
     if (score % 2 != 0) return "Total halves at specific thresholds";
-    
+
     List<int> thresholds = [];
     int current = score;
     while (current > 0 && current % 2 == 0) {
       thresholds.add(current);
       current = current ~/ 2;
     }
-    
+
     if (thresholds.isEmpty) return "Total halves at specific thresholds";
     if (thresholds.length == 1) return "Total halves at ${thresholds[0]}";
-    
+
     final last = thresholds.removeLast();
     return "Total halves at ${thresholds.join(', ')} and $last";
   }
@@ -170,7 +197,9 @@ class SetupScreenState extends State<SetupScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const GameHistoryScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const GameHistoryScreen(),
+                    ),
                   );
                 },
               ),
@@ -178,19 +207,38 @@ class SetupScreenState extends State<SetupScreen> {
             ],
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _buildSectionHeader(context, "PLAYERS", Icons.people_alt_rounded),
-                const SizedBox(height: 16),
-                ...List.generate(_playerControllers.length, (i) {
-                  return Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  _buildSectionHeader(
+                    context,
+                    "PLAYERS",
+                    Icons.people_alt_rounded,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            sliver: SliverReorderableList(
+              itemCount: _playerControllers.length,
+              onReorder: _onReorder,
+              itemBuilder: (context, i) {
+                return ReorderableDelayedDragStartListener(
+                  key: ValueKey(_playerControllers[i]),
+                  index: i,
+                  child: Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Container(
                       decoration: BoxDecoration(
                         color: colorScheme.surface,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.08)),
+                        border: Border.all(
+                          color: colorScheme.primary.withValues(alpha: 0.08),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.02),
@@ -205,7 +253,9 @@ class SetupScreenState extends State<SetupScreen> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: colorScheme.primary.withValues(alpha: 0.08),
+                              color: colorScheme.primary.withValues(
+                                alpha: 0.08,
+                              ),
                               shape: BoxShape.circle,
                             ),
                             child: Text(
@@ -221,32 +271,55 @@ class SetupScreenState extends State<SetupScreen> {
                             child: TextField(
                               controller: _playerControllers[i],
                               focusNode: _playerFocusNodes[i],
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                              textInputAction: i == _playerControllers.length - 1 ? TextInputAction.done : TextInputAction.next,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                              textInputAction:
+                                  i == _playerControllers.length - 1
+                                  ? TextInputAction.done
+                                  : TextInputAction.next,
                               onSubmitted: (_) {
                                 if (i < _playerControllers.length - 1) {
-                                  _playerFocusNodes[i+1].requestFocus();
+                                  _playerFocusNodes[i + 1].requestFocus();
                                 }
                               },
                               decoration: const InputDecoration(
                                 hintText: "Enter name...",
                                 fillColor: Colors.transparent,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 18,
+                                ),
                               ),
                             ),
                           ),
                           if (_playerControllers.length > 2)
                             IconButton(
                               onPressed: () => _removePlayerField(i),
-                              icon: const Icon(Icons.remove_circle_outline_rounded, size: 22, color: Colors.redAccent),
+                              icon: const Icon(
+                                Icons.remove_circle_outline_rounded,
+                                size: 22,
+                                color: Colors.redAccent,
+                              ),
                             ),
+                          const Icon(
+                            Icons.drag_indicator_rounded,
+                            color: Colors.black12,
+                          ),
                           const SizedBox(width: 8),
                         ],
                       ),
                     ),
-                  );
-                }),
-                const SizedBox(height: 12),
+                  ),
+                );
+              },
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
                 InkWell(
                   onTap: _addPlayerField,
                   borderRadius: BorderRadius.circular(16),
@@ -262,7 +335,11 @@ class SetupScreenState extends State<SetupScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_circle_outline_rounded, size: 20, color: colorScheme.primary),
+                        Icon(
+                          Icons.add_circle_outline_rounded,
+                          size: 20,
+                          color: colorScheme.primary,
+                        ),
                         const SizedBox(width: 10),
                         Text(
                           "ADD NEW PLAYER",
@@ -278,14 +355,20 @@ class SetupScreenState extends State<SetupScreen> {
                   ),
                 ),
                 const SizedBox(height: 48),
-                _buildSectionHeader(context, "MATCH SETTINGS", Icons.tune_rounded),
+                _buildSectionHeader(
+                  context,
+                  "MATCH SETTINGS",
+                  Icons.tune_rounded,
+                ),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: colorScheme.primary.withValues(alpha: 0.1)),
+                    border: Border.all(
+                      color: colorScheme.primary.withValues(alpha: 0.1),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: colorScheme.primary.withValues(alpha: 0.03),
@@ -314,13 +397,21 @@ class SetupScreenState extends State<SetupScreen> {
                             child: TextField(
                               controller: _endScoreController,
                               keyboardType: TextInputType.number,
-                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 42, letterSpacing: -2),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 42,
+                                letterSpacing: -2,
+                              ),
                               onChanged: (val) => setState(() {}),
                               decoration: const InputDecoration(
                                 fillColor: Colors.transparent,
                                 contentPadding: EdgeInsets.zero,
                                 suffixText: "PTS",
-                                suffixStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black26),
+                                suffixStyle: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black26,
+                                ),
                               ),
                             ),
                           ),
@@ -338,17 +429,26 @@ class SetupScreenState extends State<SetupScreen> {
                                 label: Text(val),
                                 selected: isSelected,
                                 onSelected: (selected) {
-                                  if (selected) setState(() => _endScoreController.text = val);
+                                  if (selected)
+                                    setState(
+                                      () => _endScoreController.text = val,
+                                    );
                                 },
                                 labelStyle: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: isSelected ? Colors.white : colorScheme.primary,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : colorScheme.primary,
                                 ),
                                 selectedColor: colorScheme.primary,
-                                backgroundColor: colorScheme.primary.withValues(alpha: 0.05),
+                                backgroundColor: colorScheme.primary.withValues(
+                                  alpha: 0.05,
+                                ),
                                 side: BorderSide.none,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 showCheckmark: false,
                               ),
                             );
@@ -381,7 +481,16 @@ class SetupScreenState extends State<SetupScreen> {
                         "Round winner halves their previous score",
                         Icons.workspace_premium_rounded,
                         winnerHalfPreviousScoreRule,
-                        (val) => setState(() => winnerHalfPreviousScoreRule = val),
+                        (val) =>
+                            setState(() => winnerHalfPreviousScoreRule = val),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildFancyInput(
+                        context,
+                        "Joining Penalty",
+                        "Points added to highest score for new players",
+                        Icons.person_add_rounded,
+                        _newPlayerJoinPenaltyController,
                       ),
                       const SizedBox(height: 16),
                       _buildFancySwitch(
@@ -392,6 +501,7 @@ class SetupScreenState extends State<SetupScreen> {
                         asafPenaltyRuleEnabled,
                         (val) => setState(() => asafPenaltyRuleEnabled = val),
                       ),
+                      const SizedBox(height: 16),
                       if (asafPenaltyRuleEnabled) ...[
                         const SizedBox(height: 24),
                         Container(
@@ -399,7 +509,11 @@ class SetupScreenState extends State<SetupScreen> {
                           decoration: BoxDecoration(
                             color: colorScheme.primary.withValues(alpha: 0.03),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: colorScheme.primary.withValues(alpha: 0.05)),
+                            border: Border.all(
+                              color: colorScheme.primary.withValues(
+                                alpha: 0.05,
+                              ),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,20 +524,32 @@ class SetupScreenState extends State<SetupScreen> {
                                 "Penalize even on an exact tie",
                                 Icons.equalizer_rounded,
                                 penaltyOnTieRuleEnabled,
-                                (val) => setState(() => penaltyOnTieRuleEnabled = val),
+                                (val) => setState(
+                                  () => penaltyOnTieRuleEnabled = val,
+                                ),
                               ),
                               const SizedBox(height: 20),
                               TextField(
                                 controller: _penaltyScoreController,
                                 keyboardType: TextInputType.number,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                                 decoration: InputDecoration(
                                   labelText: "Penalty Points",
                                   fillColor: Colors.white,
-                                  prefixIcon: Icon(Icons.warning_amber_rounded, size: 20, color: colorScheme.primary),
+                                  prefixIcon: Icon(
+                                    Icons.warning_amber_rounded,
+                                    size: 20,
+                                    color: colorScheme.primary,
+                                  ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: colorScheme.primary.withValues(alpha: 0.1)),
+                                    borderSide: BorderSide(
+                                      color: colorScheme.primary.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -443,12 +569,21 @@ class SetupScreenState extends State<SetupScreen> {
                     foregroundColor: Colors.white,
                     elevation: 12,
                     shadowColor: colorScheme.primary.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("START NEW MATCH", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                      Text(
+                        "START NEW MATCH",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
                       SizedBox(width: 12),
                       Icon(Icons.play_arrow_rounded, size: 24),
                     ],
@@ -462,7 +597,11 @@ class SetupScreenState extends State<SetupScreen> {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title, IconData icon) {
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
@@ -488,7 +627,14 @@ class SetupScreenState extends State<SetupScreen> {
     );
   }
 
-  Widget _buildFancySwitch(BuildContext context, String title, String subtitle, IconData icon, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildFancySwitch(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () => onChanged(!value),
@@ -500,10 +646,16 @@ class SetupScreenState extends State<SetupScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: value ? colorScheme.primary.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                color: value
+                    ? colorScheme.primary.withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, size: 20, color: value ? colorScheme.primary : Colors.black26),
+              child: Icon(
+                icon,
+                size: 20,
+                color: value ? colorScheme.primary : Colors.black26,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -537,6 +689,75 @@ class SetupScreenState extends State<SetupScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFancyInput(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    TextEditingController controller,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 20, color: colorScheme.primary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 60,
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                fillColor: colorScheme.primary.withValues(alpha: 0.05),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colorScheme.primary),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:yaniv/player.dart';
+import 'package:yaniv/round_history_widget.dart';
+import 'package:yaniv/scoreboard_widget.dart';
+
 import 'game_history.dart';
 
 class RoundScore {
   final int value;
   final bool isPenalty;
+  final bool isInactive;
+  final bool isCaller;
 
-  const RoundScore(this.value, {this.isPenalty = false});
+  const RoundScore(
+    this.value, {
+    this.isPenalty = false,
+    this.isInactive = false,
+    this.isCaller = false,
+  });
 }
 
 class GameScreen extends StatefulWidget {
@@ -17,6 +27,7 @@ class GameScreen extends StatefulWidget {
   final bool asafPenaltyRuleEnabled;
   final bool penaltyOnTieRuleEnabled;
   final int penaltyScore;
+  final int newPlayerJoinPenalty;
 
   const GameScreen({
     super.key,
@@ -27,6 +38,7 @@ class GameScreen extends StatefulWidget {
     required this.asafPenaltyRuleEnabled,
     required this.penaltyOnTieRuleEnabled,
     required this.penaltyScore,
+    required this.newPlayerJoinPenalty,
   });
 
   @override
@@ -35,61 +47,26 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   bool _forceEnd = false;
+  late List<Player> _players;
   final List<List<RoundScore>> _rawScoreHistory = [];
   final List<List<String>> roundHistory = [];
 
-  bool get gameOver => widget.players.any(
+  @override
+  void initState() {
+    super.initState();
+    _players = List.from(widget.players);
+  }
+
+  bool get gameOver => _players.any(
     (p) => p.totals.isNotEmpty && p.totals.last > widget.endScore,
   );
 
-  Player get currentWinner => widget.players.reduce(
-    (a, b) => (a.totals.isNotEmpty ? a.totals.last : 0) <
-            (b.totals.isNotEmpty ? b.totals.last : 0)
-        ? a
-        : b,
-  );
+  Player get currentWinner {
+    // Only players who have actually played rounds can be "Leading"
+    final participants = _players.where((p) => p.totals.isNotEmpty).toList();
+    if (participants.isEmpty) return _players.first;
 
-  Widget _scoreDisplay(String scoreStr, Color baseTextColor) {
-    bool isPenalty = false;
-    if (scoreStr.startsWith("!!") && scoreStr.endsWith("!!")) {
-      isPenalty = true;
-      scoreStr = scoreStr.substring(2, scoreStr.length - 2);
-    }
-
-    TextStyle baseStyle = TextStyle(
-      fontSize: 14,
-      color: isPenalty ? Colors.redAccent : baseTextColor,
-      fontWeight: isPenalty ? FontWeight.bold : FontWeight.w500,
-    );
-
-    if (scoreStr.contains('~~')) {
-      final parts = scoreStr.split('~~');
-      if (parts.length < 3) return Text(scoreStr, style: baseStyle);
-
-      return RichText(
-        textAlign: TextAlign.center,
-        text: TextSpan(
-          style: baseStyle,
-          children: [
-            TextSpan(text: parts[0]),
-            TextSpan(
-              text: parts[1],
-              style: baseStyle.copyWith(
-                decoration: TextDecoration.lineThrough,
-                color: baseTextColor.withValues(alpha: 0.4),
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-            TextSpan(
-              text: parts[2],
-              style: baseStyle.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF673AB7)),
-            ),
-          ],
-        ),
-      );
-    } else {
-      return Text(scoreStr, style: baseStyle, textAlign: TextAlign.center);
-    }
+    return participants.reduce((a, b) => a.totals.last < b.totals.last ? a : b);
   }
 
   Future<void> _addRound(List<RoundScore> inputScores) async {
@@ -100,7 +77,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _recalculateTotals() {
-    for (var player in widget.players) {
+    for (var player in _players) {
       player.scores.clear();
       player.totals.clear();
     }
@@ -115,13 +92,45 @@ class _GameScreenState extends State<GameScreen> {
       current = current ~/ 2;
     }
 
-    for (var rawScores in _rawScoreHistory) {
+    for (int r = 0; r < _rawScoreHistory.length; r++) {
+      final rawScores = _rawScoreHistory[r];
       List<String> roundDisplay = [];
       List<int> actualScoresForThisRound = [];
 
-      for (int i = 0; i < widget.players.length; i++) {
-        Player player = widget.players[i];
-        int prevTotal = player.totals.isEmpty ? 0 : player.totals.last;
+      // Calculate max total from previous round for joiner penalty
+      int currentMaxTotal = 0;
+      if (_players.any((p) => p.totals.isNotEmpty)) {
+        currentMaxTotal = _players
+            .where((p) => p.totals.isNotEmpty)
+            .map((p) => p.totals.last)
+            .reduce((a, b) => a > b ? a : b);
+      }
+
+      for (int i = 0; i < _players.length; i++) {
+        Player player = _players[i];
+
+        if (r < player.joinedAtRound) {
+          actualScoresForThisRound.add(0);
+          roundDisplay.add("-");
+          continue;
+        }
+
+        if (rawScores[i].isInactive) {
+          actualScoresForThisRound.add(0);
+          roundDisplay.add("-");
+          continue;
+        }
+
+        int prevTotal;
+        // A player is joining ONLY if they enter after round 0
+        bool isJoining = r > 0 && player.joinedAtRound == r;
+
+        if (isJoining) {
+          prevTotal = currentMaxTotal + widget.newPlayerJoinPenalty;
+        } else {
+          prevTotal = player.totals.isEmpty ? 0 : player.totals.last;
+        }
+
         int rawScore = rawScores[i].value;
         int tentativeTotal = prevTotal + rawScore;
 
@@ -131,9 +140,21 @@ class _GameScreenState extends State<GameScreen> {
         if (widget.halvingRuleEnabled && thresholds.contains(tentativeTotal)) {
           int halvedTotal = (tentativeTotal / 2).ceil();
           actualScore = halvedTotal - prevTotal;
-          displayStr = "$prevTotal + $rawScore = ~~$tentativeTotal~~ $halvedTotal";
+
+          if (isJoining) {
+            displayStr =
+                "Join (${currentMaxTotal}+${widget.newPlayerJoinPenalty}) + $rawScore = ~~$tentativeTotal~~ $halvedTotal";
+          } else {
+            displayStr =
+                "$prevTotal + $rawScore = ~~$tentativeTotal~~ $halvedTotal";
+          }
         } else {
-          displayStr = "$prevTotal + $rawScore = $tentativeTotal";
+          if (isJoining) {
+            displayStr =
+                "Join (${currentMaxTotal}+${widget.newPlayerJoinPenalty}) + $rawScore = $tentativeTotal";
+          } else {
+            displayStr = "$prevTotal + $rawScore = $tentativeTotal";
+          }
         }
 
         if (rawScores[i].isPenalty) displayStr = "!!$displayStr!!";
@@ -145,22 +166,40 @@ class _GameScreenState extends State<GameScreen> {
       if (widget.winnerHalfPreviousScoreRule) {
         List<int> winnerIndices = [];
         for (int i = 0; i < rawScores.length; i++) {
-          if (rawScores[i].value == 0) winnerIndices.add(i);
+          if (r >= _players[i].joinedAtRound &&
+              rawScores[i].value == 0 &&
+              !rawScores[i].isInactive)
+            winnerIndices.add(i);
         }
 
         for (int winnerIndex in winnerIndices) {
-          Player winner = widget.players[winnerIndex];
-          int prevTotal = winner.totals.isEmpty ? 0 : winner.totals.last;
+          Player winner = _players[winnerIndex];
+
+          // Winner bonus applies even to a joiner if they win their first round
+          int prevTotal;
+          if (r > 0 && winner.joinedAtRound == r) {
+            prevTotal = currentMaxTotal + widget.newPlayerJoinPenalty;
+          } else {
+            prevTotal = winner.totals.isEmpty ? 0 : winner.totals.last;
+          }
+
           int newTotal = (prevTotal / 2).ceil();
           actualScoresForThisRound[winnerIndex] = newTotal - prevTotal;
           roundDisplay[winnerIndex] = "~~$prevTotal~~ $newTotal";
         }
       }
 
-      for (int i = 0; i < widget.players.length; i++) {
-        widget.players[i].scores.add(actualScoresForThisRound[i]);
-        int prevTotal = widget.players[i].totals.isEmpty ? 0 : widget.players[i].totals.last;
-        widget.players[i].totals.add(prevTotal + actualScoresForThisRound[i]);
+      for (int i = 0; i < _players.length; i++) {
+        if (r < _players[i].joinedAtRound) continue;
+
+        _players[i].scores.add(actualScoresForThisRound[i]);
+        int prevTotal;
+        if (r > 0 && _players[i].joinedAtRound == r) {
+          prevTotal = currentMaxTotal + widget.newPlayerJoinPenalty;
+        } else {
+          prevTotal = _players[i].totals.isEmpty ? 0 : _players[i].totals.last;
+        }
+        _players[i].totals.add(prevTotal + actualScoresForThisRound[i]);
       }
       newRoundHistory.add(roundDisplay);
     }
@@ -173,8 +212,9 @@ class _GameScreenState extends State<GameScreen> {
   void _checkGameEnd() {
     if (gameOver) {
       final winner = currentWinner;
-      final loser = widget.players.reduce((a, b) => 
-        (a.totals.last) > (b.totals.last) ? a : b);
+      final loser = _players.reduce(
+        (a, b) => (a.totals.last) > (b.totals.last) ? a : b,
+      );
 
       GameHistory.addGameResult(
         winnerName: winner.name,
@@ -189,8 +229,15 @@ class _GameScreenState extends State<GameScreen> {
           context: context,
           barrierDismissible: false,
           builder: (dialogContext) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-            title: const Center(child: Text('🏆 MATCH OVER', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1))),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            title: const Center(
+              child: Text(
+                '🏆 MATCH OVER',
+                style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+              ),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -201,13 +248,34 @@ class _GameScreenState extends State<GameScreen> {
                     color: Colors.amber.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.emoji_events_rounded, size: 64, color: Colors.amber),
+                  child: const Icon(
+                    Icons.emoji_events_rounded,
+                    size: 64,
+                    color: Colors.amber,
+                  ),
                 ),
                 const SizedBox(height: 24),
-                Text(winner.name.toUpperCase(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF311B92))),
-                const Text('WINS THE MATCH!', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black54)),
+                Text(
+                  winner.name.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF311B92),
+                  ),
+                ),
+                const Text(
+                  'WINS THE MATCH!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: Colors.black54,
+                  ),
+                ),
                 const SizedBox(height: 16),
-                Text('Score: ${winner.totals.last} pts', style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  'Score: ${winner.totals.last} pts',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
               ],
             ),
             actions: [
@@ -231,8 +299,15 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showAddScoresDialog() {
-    final controllers = List.generate(widget.players.length, (_) => TextEditingController());
-    final focusNodes = List.generate(widget.players.length, (_) => FocusNode());
+    final activePlayers = _players
+        .where((p) => p.joinedAtRound <= _rawScoreHistory.length)
+        .toList();
+
+    final controllers = List.generate(
+      activePlayers.length,
+      (_) => TextEditingController(),
+    );
+    final focusNodes = List.generate(activePlayers.length, (_) => FocusNode());
     int? selectedCallerIndex;
     String? errorMessage;
 
@@ -240,112 +315,398 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (statefulContext, setStateDialog) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text("ROUND RESULTS", 
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (errorMessage != null)
+        builder: (statefulContext, setStateDialog) {
+          final colorScheme = Theme.of(context).colorScheme;
+
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(32),
+            ),
+            contentPadding: EdgeInsets.zero,
+            content: Container(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.03),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(32),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.add_chart_rounded,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          "ROUND RESULTS",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (errorMessage != null)
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 20),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline_rounded,
+                                    size: 18,
+                                    color: Colors.redAccent,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      errorMessage!,
+                                      style: const TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (widget.asafPenaltyRuleEnabled) ...[
+                            Text(
+                              "WHO CALLED YANIV?",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11,
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.5,
+                                ),
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 80,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: activePlayers.length,
+                                itemBuilder: (context, i) {
+                                  final isSelected = selectedCallerIndex == i;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: InkWell(
+                                      onTap: () => setStateDialog(
+                                        () => selectedCallerIndex = i,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Container(
+                                        width: 70,
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? colorScheme.primary
+                                              : colorScheme.primary.withValues(
+                                                  alpha: 0.05,
+                                                ),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? colorScheme.primary
+                                                : Colors.transparent,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              activePlayers[i].name[0]
+                                                  .toUpperCase(),
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                color: isSelected
+                                                    ? Colors.white
+                                                    : colorScheme.primary,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              activePlayers[i].name,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: isSelected
+                                                    ? Colors.white70
+                                                    : Colors.black54,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                          Text(
+                            "SCORES",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                              color: colorScheme.primary.withValues(alpha: 0.5),
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...List.generate(activePlayers.length, (i) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 14,
+                                    backgroundColor: colorScheme.primary
+                                        .withValues(alpha: 0.1),
+                                    child: Text(
+                                      activePlayers[i].name[0].toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      activePlayers[i].name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 80,
+                                    child: TextField(
+                                      controller: controllers[i],
+                                      focusNode: focusNodes[i],
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 20,
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: "0",
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              vertical: 8,
+                                            ),
+                                        fillColor: colorScheme.primary
+                                            .withValues(alpha: 0.03),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: colorScheme.primary,
+                                            width: 2,
+                                          ),
+                                        ),
+                                      ),
+                                      onSubmitted: (_) {
+                                        if (i < activePlayers.length - 1) {
+                                          focusNodes[i + 1].requestFocus();
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Text(errorMessage!, style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () {
+                              for (var node in focusNodes) {
+                                node.dispose();
+                              }
+                              Navigator.pop(statefulContext);
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text(
+                              "CANCEL",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: Colors.black38,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (widget.asafPenaltyRuleEnabled &&
+                                  selectedCallerIndex == null) {
+                                setStateDialog(
+                                  () =>
+                                      errorMessage = "Please select the caller",
+                                );
+                                return;
+                              }
+                              List<int> activeHandTotals = controllers
+                                  .map((c) => int.tryParse(c.text) ?? 0)
+                                  .toList();
+                              List<RoundScore> finalScores = [];
+                              int activeIdx = 0;
+                              List<RoundScore> activeFinalScores = [];
+
+                              if (widget.asafPenaltyRuleEnabled) {
+                                int callerHand =
+                                    activeHandTotals[selectedCallerIndex!];
+                                int minHand = activeHandTotals.reduce(
+                                  (a, b) => a < b ? a : b,
+                                );
+                                bool isAsaf =
+                                    activeHandTotals.any(
+                                      (s) => s < callerHand,
+                                    ) ||
+                                    (widget.penaltyOnTieRuleEnabled &&
+                                        activeHandTotals
+                                                .where((s) => s == callerHand)
+                                                .length >
+                                            1);
+
+                                for (int i = 0; i < activePlayers.length; i++) {
+                                  final isThisCaller = i == selectedCallerIndex;
+                                  if (isThisCaller) {
+                                    activeFinalScores.add(
+                                      isAsaf
+                                          ? RoundScore(
+                                              activeHandTotals[i] +
+                                                  widget.penaltyScore,
+                                              isPenalty: true,
+                                              isCaller: true,
+                                            )
+                                          : const RoundScore(0, isCaller: true),
+                                    );
+                                  } else {
+                                    activeFinalScores.add(
+                                      (isAsaf && activeHandTotals[i] == minHand)
+                                          ? const RoundScore(0)
+                                          : RoundScore(activeHandTotals[i]),
+                                    );
+                                  }
+                                }
+                              } else {
+                                int minHand = activeHandTotals.reduce(
+                                  (a, b) => a < b ? a : b,
+                                );
+                                activeFinalScores = activeHandTotals
+                                    .map(
+                                      (s) => RoundScore(s == minHand ? 0 : s),
+                                    )
+                                    .toList();
+                              }
+
+                              for (var p in _players) {
+                                if (p.joinedAtRound <=
+                                    _rawScoreHistory.length) {
+                                  finalScores.add(
+                                    activeFinalScores[activeIdx++],
+                                  );
+                                } else {
+                                  finalScores.add(
+                                    const RoundScore(0, isInactive: true),
+                                  );
+                                }
+                              }
+                              await _addRound(finalScores);
+                              if (statefulContext.mounted) {
+                                for (var node in focusNodes) {
+                                  node.dispose();
+                                }
+                                Navigator.pop(statefulContext);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: const Text(
+                              "SAVE ROUND",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                if (widget.asafPenaltyRuleEnabled) ...[
-                  const Text("WHO CALLED YANIV?", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black54)),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: List.generate(widget.players.length, (i) => ChoiceChip(
-                      label: Text(widget.players[i].name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      selected: selectedCallerIndex == i,
-                      onSelected: (selected) => setStateDialog(() => selectedCallerIndex = selected ? i : null),
-                      selectedColor: const Color(0xFF673AB7).withValues(alpha: 0.2),
-                      checkmarkColor: const Color(0xFF673AB7),
-                    )),
-                  ),
-                  const Divider(height: 32),
                 ],
-                const Text("HAND TOTALS", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black54)),
-                const SizedBox(height: 12),
-                ...List.generate(widget.players.length, (i) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: TextField(
-                    controller: controllers[i],
-                    focusNode: focusNodes[i],
-                    keyboardType: TextInputType.number,
-                    textInputAction: i == widget.players.length - 1 ? TextInputAction.done : TextInputAction.next,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    decoration: InputDecoration(
-                      labelText: widget.players[i].name,
-                      hintText: "Enter hand score",
-                      prefixIcon: const Icon(Icons.calculate_outlined),
-                    ),
-                    onSubmitted: (_) {
-                      if (i < widget.players.length - 1) {
-                        focusNodes[i + 1].requestFocus();
-                      }
-                    },
-                  ),
-                )),
-              ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                for (var node in focusNodes) { node.dispose(); }
-                Navigator.pop(statefulContext);
-              },
-              child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black38)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (widget.asafPenaltyRuleEnabled && selectedCallerIndex == null) {
-                  setStateDialog(() => errorMessage = "Please select the caller");
-                  return;
-                }
-
-                List<int> handTotals = controllers.map((c) => int.tryParse(c.text) ?? 0).toList();
-                List<RoundScore> finalScores = [];
-
-                if (widget.asafPenaltyRuleEnabled) {
-                  int callerHand = handTotals[selectedCallerIndex!];
-                  int minHand = handTotals.reduce((a, b) => a < b ? a : b);
-                  bool isAsaf = handTotals.any((s) => s < callerHand) || 
-                               (widget.penaltyOnTieRuleEnabled && handTotals.where((s) => s == callerHand).length > 1);
-
-                  for (int i = 0; i < widget.players.length; i++) {
-                    if (i == selectedCallerIndex) {
-                      finalScores.add(isAsaf ? RoundScore(handTotals[i] + widget.penaltyScore, isPenalty: true) : const RoundScore(0));
-                    } else {
-                      finalScores.add((isAsaf && handTotals[i] == minHand) ? const RoundScore(0) : RoundScore(handTotals[i]));
-                    }
-                  }
-                } else {
-                  // Automatically find the winner(s) with the lowest hand total
-                  int minHand = handTotals.reduce((a, b) => a < b ? a : b);
-                  finalScores = handTotals.map((s) => RoundScore(s == minHand ? 0 : s)).toList();
-                }
-
-                await _addRound(finalScores);
-                if (statefulContext.mounted) {
-                  for (var node in focusNodes) { node.dispose(); }
-                  Navigator.pop(statefulContext);
-                }
-              },
-              child: const Text("SAVE ROUND"),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -355,10 +716,16 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("DELETE ROUND?", style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          "DELETE ROUND?",
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
         content: Text("Discard all scores from round ${index + 1}?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text("KEEP IT")),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("KEEP IT"),
+          ),
           TextButton(
             onPressed: () {
               setState(() {
@@ -367,11 +734,194 @@ class _GameScreenState extends State<GameScreen> {
               });
               Navigator.pop(dialogContext);
             },
-            child: const Text("DELETE", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "DELETE",
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  void _showManagePlayersDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (statefulContext, setStateDialog) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text(
+            "MANAGE PLAYERS",
+            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: ReorderableListView(
+                    shrinkWrap: true,
+                    onReorder: (oldIndex, newIndex) {
+                      setState(() {
+                        if (newIndex > oldIndex) newIndex -= 1;
+                        final player = _players.removeAt(oldIndex);
+                        _players.insert(newIndex, player);
+
+                        // Reorder scores in history
+                        for (var round in _rawScoreHistory) {
+                          final score = round.removeAt(oldIndex);
+                          round.insert(newIndex, score);
+                        }
+                        _recalculateTotals();
+                      });
+                      setStateDialog(() {});
+                    },
+                    children: List.generate(_players.length, (i) {
+                      final player = _players[i];
+                      return ListTile(
+                        key: ValueKey(player),
+                        leading: const Icon(Icons.drag_handle_rounded),
+                        title: TextField(
+                          controller: TextEditingController(text: player.name),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: "Player Name",
+                          ),
+                          onSubmitted: (val) {
+                            if (val.trim().isNotEmpty) {
+                              setState(() => player.name = val.trim());
+                            }
+                          },
+                        ),
+                        subtitle: Text(
+                          player.joinedAtRound > 0
+                              ? "Joined at Round ${player.joinedAtRound + 1}"
+                              : "Starting Player",
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                        trailing: Text(
+                          "${player.totals.isNotEmpty ? player.totals.last : 0} pts",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF673AB7),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () =>
+                      _showAddPlayerDialog(statefulContext, setStateDialog),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: const Color(0xFF673AB7).withValues(alpha: 0.3),
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.person_add_rounded,
+                          size: 20,
+                          color: Color(0xFF673AB7),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          "ADD NEW PLAYER",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF673AB7),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                "DONE",
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddPlayerDialog(BuildContext context, StateSetter setStateDialog) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "ADD NEW PLAYER",
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: "Enter name",
+            prefixIcon: Icon(Icons.person_outline_rounded),
+          ),
+          onSubmitted: (val) {
+            if (val.trim().isNotEmpty) {
+              _executeAddPlayer(val.trim(), setStateDialog);
+              Navigator.pop(c);
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text("CANCEL"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                _executeAddPlayer(controller.text.trim(), setStateDialog);
+                Navigator.pop(c);
+              }
+            },
+            child: const Text("ADD PLAYER"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _executeAddPlayer(String name, StateSetter setStateDialog) {
+    setState(() {
+      final newPlayer = Player(name, joinedAtRound: _rawScoreHistory.length);
+      _players.add(newPlayer);
+      // Pad existing history with inactive scores
+      for (var round in _rawScoreHistory) {
+        round.add(const RoundScore(0, isInactive: true));
+      }
+      _recalculateTotals();
+    });
+    setStateDialog(() {});
   }
 
   void _showRulesInfo() {
@@ -386,25 +936,71 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Center(child: Text("ACTIVE MATCH RULES", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
+        title: const Center(
+          child: Text(
+            "ACTIVE MATCH RULES",
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildRuleInfoRow(context, Icons.outlined_flag_rounded, "Target Score", "${widget.endScore} PTS"),
+            _buildRuleInfoRow(
+              context,
+              Icons.outlined_flag_rounded,
+              "Target Score",
+              "${widget.endScore} PTS",
+            ),
             const Divider(height: 32),
-            _buildRuleInfoRow(context, Icons.auto_awesome_rounded, "Halving Logic", 
-              widget.halvingRuleEnabled ? "ON (${thresholds.join(', ')})" : "OFF"),
+            _buildRuleInfoRow(
+              context,
+              Icons.auto_awesome_rounded,
+              "Halving Logic",
+              widget.halvingRuleEnabled
+                  ? "ON (${thresholds.join(', ')})"
+                  : "OFF",
+            ),
             const SizedBox(height: 16),
-            _buildRuleInfoRow(context, Icons.workspace_premium_rounded, "Winner Bonus", 
-              widget.winnerHalfPreviousScoreRule ? "ON (Winner halves previous score)" : "OFF"),
+            _buildRuleInfoRow(
+              context,
+              Icons.workspace_premium_rounded,
+              "Winner Bonus",
+              widget.winnerHalfPreviousScoreRule
+                  ? "ON (Winner halves previous score)"
+                  : "OFF",
+            ),
             const SizedBox(height: 16),
-            _buildRuleInfoRow(context, Icons.gavel_rounded, "Asaf Penalty", 
-              widget.asafPenaltyRuleEnabled ? "ON (${widget.penaltyScore} PTS)" : "OFF"),
+            _buildRuleInfoRow(
+              context,
+              Icons.gavel_rounded,
+              "Asaf Penalty",
+              widget.asafPenaltyRuleEnabled
+                  ? "ON (${widget.penaltyScore} PTS)"
+                  : "OFF",
+            ),
+            const SizedBox(height: 16),
+            _buildRuleInfoRow(
+              context,
+              Icons.person_add_rounded,
+              "Joining Penalty",
+              "${widget.newPlayerJoinPenalty} PTS",
+            ),
+            const SizedBox(height: 16),
+            _buildRuleInfoRow(
+              context,
+              Icons.person_add_rounded,
+              "Joining Penalty",
+              "${widget.newPlayerJoinPenalty} PTS",
+            ),
             if (widget.asafPenaltyRuleEnabled) ...[
               const SizedBox(height: 16),
-              _buildRuleInfoRow(context, Icons.equalizer_rounded, "Tie Penalty", 
-                widget.penaltyOnTieRuleEnabled ? "YES (Penalize on tie)" : "NO"),
+              _buildRuleInfoRow(
+                context,
+                Icons.equalizer_rounded,
+                "Tie Penalty",
+                widget.penaltyOnTieRuleEnabled ? "YES (Penalize on tie)" : "NO",
+              ),
             ],
           ],
         ),
@@ -412,7 +1008,10 @@ class _GameScreenState extends State<GameScreen> {
           Center(
             child: TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("GOT IT", style: TextStyle(fontWeight: FontWeight.w900)),
+              child: const Text(
+                "GOT IT",
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
             ),
           ),
         ],
@@ -420,7 +1019,12 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildRuleInfoRow(BuildContext context, IconData icon, String title, String value) {
+  Widget _buildRuleInfoRow(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String value,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
@@ -430,12 +1034,34 @@ class _GameScreenState extends State<GameScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black45)),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                  color: Colors.black45,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStandings() {
+    return Scoreboard(
+      players: _players,
+      currentWinner: currentWinner,
+      targetScore: widget.endScore,
+      newPlayerJoinPenalty: widget.newPlayerJoinPenalty,
     );
   }
 
@@ -457,6 +1083,11 @@ class _GameScreenState extends State<GameScreen> {
           title: const Text("SCOREBOARD"),
           actions: [
             IconButton(
+              icon: const Icon(Icons.people_outline_rounded),
+              onPressed: _showManagePlayersDialog,
+              tooltip: "Manage Players",
+            ),
+            IconButton(
               icon: const Icon(Icons.info_outline_rounded),
               onPressed: _showRulesInfo,
               tooltip: "Match Rules",
@@ -471,201 +1102,33 @@ class _GameScreenState extends State<GameScreen> {
         body: Column(
           children: [
             _buildStandings(),
-            Expanded(child: _buildHistoryList()),
-          ],
-        ),
-        floatingActionButton: !gameOver ? FloatingActionButton.extended(
-          onPressed: _showAddScoresDialog,
-          backgroundColor: const Color(0xFF673AB7),
-          foregroundColor: Colors.white,
-          elevation: 4,
-          icon: const Icon(Icons.add_rounded),
-          label: const Text("ADD ROUND", style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-        ) : null,
-      ),
-    );
-  }
-
-  Widget _buildStandings() {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.primary.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          )
-        ],
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [colorScheme.primary, const Color(0xFF311B92)],
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: widget.players.map((p) {
-          int total = p.totals.isNotEmpty ? p.totals.last : 0;
-          bool isLeading = p == currentWinner && p.totals.isNotEmpty;
-          bool isDanger = total > widget.endScore * 0.8;
-
-          return Expanded(
-            child: Tooltip(
-              message: p.name,
-              triggerMode: TooltipTriggerMode.longPress,
-              child: Column(
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: 54,
-                        height: 54,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isLeading ? Colors.amber : (isDanger ? Colors.redAccent : Colors.white24),
-                            width: 2.5,
-                          ),
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                        child: Center(
-                          child: Text(
-                            p.name[0].toUpperCase(),
-                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                      if (isLeading)
-                        const Positioned(top: -12, child: Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 20)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(p.name.toUpperCase(), 
-                    overflow: TextOverflow.ellipsis, 
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.white70, letterSpacing: 0.5)),
-                  const SizedBox(height: 2),
-                  Text(
-                    "$total",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: isDanger ? Colors.redAccent : (isLeading ? Colors.amber : Colors.white),
-                    ),
-                  ),
-                ],
+            Expanded(
+              child: RoundHistoryList(
+                players: _players,
+                rawScoreHistory: _rawScoreHistory,
+                roundHistory: roundHistory,
+                onDeleteRound: _deleteRound,
               ),
             ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildHistoryList() {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    if (roundHistory.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.style_outlined, size: 64, color: colorScheme.primary.withValues(alpha: 0.1)),
-            const SizedBox(height: 16),
-            Text("NO ROUNDS PLAYED", style: TextStyle(
-              fontWeight: FontWeight.w800, 
-              letterSpacing: 1, 
-              color: colorScheme.primary.withValues(alpha: 0.2),
-              fontSize: 12,
-            )),
           ],
         ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 100, top: 8),
-      itemCount: roundHistory.length,
-      itemBuilder: (context, index) {
-        final reversedIndex = roundHistory.length - 1 - index;
-        final displayScores = roundHistory[reversedIndex];
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: colorScheme.primary.withValues(alpha: 0.05)),
-          ),
-          child: ExpansionTile(
-            shape: const RoundedRectangleBorder(side: BorderSide.none),
-            collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
-            tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            leading: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.05), shape: BoxShape.circle),
-              child: Text("${reversedIndex + 1}", style: TextStyle(fontSize: 12, color: colorScheme.primary, fontWeight: FontWeight.w900)),
-            ),
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(widget.players.length, (i) {
-                final isWinner = _rawScoreHistory[reversedIndex][i].value == 0;
-                return Column(
-                  children: [
-                    Text(
-                      "${_rawScoreHistory[reversedIndex][i].value}",
-                      style: TextStyle(
-                        fontWeight: isWinner ? FontWeight.w900 : FontWeight.w600,
-                        fontSize: 18,
-                        color: isWinner ? const Color(0xFFFF8F00) : Colors.black87,
-                      ),
-                    ),
-                    if (isWinner) 
-                      Container(width: 4, height: 4, decoration: const BoxDecoration(color: Color(0xFFFF8F00), shape: BoxShape.circle)),
-                  ],
-                );
-              }),
-            ),
-            trailing: const Icon(Icons.expand_more_rounded, color: Colors.black26),
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: Column(
-                  children: [
-                    const Divider(height: 24),
-                    ...List.generate(widget.players.length, (i) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(widget.players[i].name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54)),
-                          _scoreDisplay(displayScores[i], Colors.black87),
-                        ],
-                      ),
-                    )),
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: () => _deleteRound(reversedIndex),
-                      icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-                      label: const Text("DELETE ROUND", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
-                      style: TextButton.styleFrom(foregroundColor: Colors.redAccent.withValues(alpha: 0.7)),
-                    ),
-                  ],
+        floatingActionButton: !gameOver
+            ? FloatingActionButton.extended(
+                onPressed: _showAddScoresDialog,
+                backgroundColor: const Color(0xFF673AB7),
+                foregroundColor: Colors.white,
+                elevation: 4,
+                icon: const Icon(Icons.add_rounded),
+                label: const Text(
+                  "ADD ROUND",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               )
-            ],
-          ),
-        );
-      },
+            : null,
+      ),
     );
   }
 }
@@ -675,13 +1138,25 @@ Future<bool?> _showEndGameDialog(BuildContext context) {
     context: context,
     builder: (dialogContext) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text('END MATCH?', style: TextStyle(fontWeight: FontWeight.w900)),
+      title: const Text(
+        'END MATCH?',
+        style: TextStyle(fontWeight: FontWeight.w900),
+      ),
       content: const Text('All current scores will be lost. Ready to quit?'),
       actions: [
-        TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('STAY')),
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('STAY'),
+        ),
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('QUIT', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          child: const Text(
+            'QUIT',
+            style: TextStyle(
+              color: Colors.redAccent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     ),
