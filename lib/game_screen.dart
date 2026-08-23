@@ -143,7 +143,7 @@ class _GameScreenState extends State<GameScreen> {
 
           if (isJoining) {
             displayStr =
-                "Join (${currentMaxTotal}+${widget.newPlayerJoinPenalty}) + $rawScore = ~~$tentativeTotal~~ $halvedTotal";
+                "Join ($currentMaxTotal+${widget.newPlayerJoinPenalty}) + $rawScore = ~~$tentativeTotal~~ $halvedTotal";
           } else {
             displayStr =
                 "$prevTotal + $rawScore = ~~$tentativeTotal~~ $halvedTotal";
@@ -151,7 +151,7 @@ class _GameScreenState extends State<GameScreen> {
         } else {
           if (isJoining) {
             displayStr =
-                "Join (${currentMaxTotal}+${widget.newPlayerJoinPenalty}) + $rawScore = $tentativeTotal";
+                "Join ($currentMaxTotal+${widget.newPlayerJoinPenalty}) + $rawScore = $tentativeTotal";
           } else {
             displayStr = "$prevTotal + $rawScore = $tentativeTotal";
           }
@@ -168,8 +168,9 @@ class _GameScreenState extends State<GameScreen> {
         for (int i = 0; i < rawScores.length; i++) {
           if (r >= _players[i].joinedAtRound &&
               rawScores[i].value == 0 &&
-              !rawScores[i].isInactive)
+              !rawScores[i].isInactive) {
             winnerIndices.add(i);
+          }
         }
 
         for (int winnerIndex in winnerIndices) {
@@ -325,7 +326,7 @@ class _GameScreenState extends State<GameScreen> {
               borderRadius: BorderRadius.circular(32),
             ),
             contentPadding: EdgeInsets.zero,
-            content: Container(
+            content: SizedBox(
               width: double.maxFinite,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -767,7 +768,7 @@ class _GameScreenState extends State<GameScreen> {
                 Flexible(
                   child: ReorderableListView(
                     shrinkWrap: true,
-                    onReorder: (oldIndex, newIndex) {
+                    onReorderItem: (oldIndex, newIndex) {
                       setState(() {
                         if (newIndex > oldIndex) newIndex -= 1;
                         final player = _players.removeAt(oldIndex);

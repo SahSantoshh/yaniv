@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'player.dart';
+
 import 'game_screen.dart';
+import 'player.dart';
 
 class RoundHistoryList extends StatelessWidget {
   final List<Player> players;
@@ -100,6 +101,7 @@ class RoundHistoryList extends StatelessWidget {
         final displayScores = roundHistory[reversedIndex];
 
         return Container(
+          key: ValueKey("round_${reversedIndex}"),
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -109,6 +111,7 @@ class RoundHistoryList extends StatelessWidget {
             ),
           ),
           child: ExpansionTile(
+            maintainState: true,
             shape: const RoundedRectangleBorder(side: BorderSide.none),
             collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
             tilePadding: const EdgeInsets.symmetric(
