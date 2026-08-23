@@ -1,8 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:yaniv/ad_helper.dart';
+
 import 'game_history.dart';
 
-class GameHistoryScreen extends StatelessWidget {
+class GameHistoryScreen extends StatefulWidget {
   const GameHistoryScreen({super.key});
+
+  @override
+  State<GameHistoryScreen> createState() => _GameHistoryScreenState();
+}
+
+class _GameHistoryScreenState extends State<GameHistoryScreen> {
+  BannerAd? _bannerAd;
+
+  @override
+  void initState() {
+    super.initState();
+    BannerAd(
+      adUnitId: AdHelper.bannerAnchoredId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _bannerAd = ad as BannerAd;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          debugPrint('Failed to load history banner: ${err.message}');
+          ad.dispose();
+        },
+      ),
+    ).load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
 
   String formatDate(String isoString) {
     final date = DateTime.parse(isoString);
@@ -31,6 +68,14 @@ class GameHistoryScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
+      bottomNavigationBar: _bannerAd != null
+          ? Container(
+              color: Colors.white,
+              width: _bannerAd!.size.width.toDouble(),
+              height: _bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            )
+          : null,
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: GameHistory.getGameHistory(),
         builder: (context, snapshot) {
@@ -117,7 +162,9 @@ class GameHistoryScreen extends StatelessWidget {
                             child: Text(
                               "VS",
                               style: TextStyle(
-                                color: colorScheme.onSurface.withValues(alpha: 0.2),
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.2,
+                                ),
                                 fontWeight: FontWeight.bold,
                                 fontStyle: FontStyle.italic,
                               ),
@@ -151,18 +198,15 @@ class GameHistoryScreen extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Expanded(
       child: Column(
-        crossAxisAlignment:
-            isWinner ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+        crossAxisAlignment: isWinner
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.end,
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (isWinner)
-                const Icon(
-                  Icons.emoji_events,
-                  color: Colors.amber,
-                  size: 16,
-                ),
+                const Icon(Icons.emoji_events, color: Colors.amber, size: 16),
               if (isWinner) const SizedBox(width: 4),
               Flexible(
                 child: Text(
@@ -170,7 +214,9 @@ class GameHistoryScreen extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: isWinner ? Colors.amber.shade900 : colorScheme.onSurface,
+                    color: isWinner
+                        ? Colors.amber.shade900
+                        : colorScheme.onSurface,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -179,10 +225,7 @@ class GameHistoryScreen extends StatelessWidget {
           ),
           Text(
             "$score pts",
-            style: TextStyle(
-              color: colorScheme.onSurfaceVariant,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
           ),
         ],
       ),

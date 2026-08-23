@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:yaniv/ad_helper.dart';
 import 'package:yaniv/player.dart';
 
 import 'game_history_screen.dart';
@@ -28,8 +30,13 @@ class SetupScreenState extends State<SetupScreen> {
   final TextEditingController _newPlayerJoinPenaltyController =
       TextEditingController(text: '10');
 
+  BannerAd? _bannerAd;
+  InterstitialAd? _interstitialAd;
+
   @override
   void dispose() {
+    _bannerAd?.dispose();
+    _interstitialAd?.dispose();
     for (var node in _playerFocusNodes) {
       node.dispose();
     }
@@ -77,6 +84,22 @@ class SetupScreenState extends State<SetupScreen> {
       final focusNode = _playerFocusNodes.removeAt(oldIndex);
       _playerFocusNodes.insert(newIndex, focusNode);
     });
+  }
+
+  void _loadInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: AdHelper.interstitialNavId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          _interstitialAd = ad;
+        },
+        onAdFailedToLoad: (err) {
+          debugPrint('InterstitialAd failed to load: ${err.message}');
+          _interstitialAd = null;
+        },
+      ),
+    );
   }
 
   void _startGame() {
@@ -136,6 +159,24 @@ class SetupScreenState extends State<SetupScreen> {
       return;
     }
 
+    if (_interstitialAd != null) {
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (ad) {
+          ad.dispose();
+          _navigateToGame(players, endScore);
+        },
+        onAdFailedToShowFullScreenContent: (ad, err) {
+          ad.dispose();
+          _navigateToGame(players, endScore);
+        },
+      );
+      _interstitialAd!.show();
+    } else {
+      _navigateToGame(players, endScore);
+    }
+  }
+
+  void _navigateToGame(List<Player> players, int endScore) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -151,7 +192,7 @@ class SetupScreenState extends State<SetupScreen> {
               int.tryParse(_newPlayerJoinPenaltyController.text) ?? 10,
         ),
       ),
-    );
+    ).then((_) => _loadInterstitialAd()); // Reload for next time
   }
 
   @override
@@ -159,6 +200,25 @@ class SetupScreenState extends State<SetupScreen> {
     super.initState();
     _addPlayerField(); // This one will get focus
     _addPlayerField(requestFocus: false);
+
+    BannerAd(
+      adUnitId: AdHelper.bannerAnchoredId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _bannerAd = ad as BannerAd;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          debugPrint('Failed to load a banner ad: ${err.message}');
+          ad.dispose();
+        },
+      ),
+    ).load();
+
+    _loadInterstitialAd();
   }
 
   String _getHalvingMessage() {
@@ -186,6 +246,14 @@ class SetupScreenState extends State<SetupScreen> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
+      bottomNavigationBar: _bannerAd != null
+          ? Container(
+              color: Colors.white,
+              width: _bannerAd!.size.width.toDouble(),
+              height: _bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            )
+          : null,
       body: CustomScrollView(
         slivers: [
           SliverAppBar.large(
