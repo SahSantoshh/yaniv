@@ -225,7 +225,7 @@ class SetupScreenState extends State<SetupScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             sliver: SliverReorderableList(
               itemCount: _playerControllers.length,
-              onReorder: _onReorder,
+              onReorderItem: _onReorder,
               itemBuilder: (context, i) {
                 return ReorderableDelayedDragStartListener(
                   key: ValueKey(_playerControllers[i]),
@@ -429,10 +429,11 @@ class SetupScreenState extends State<SetupScreen> {
                                 label: Text(val),
                                 selected: isSelected,
                                 onSelected: (selected) {
-                                  if (selected)
+                                  if (selected) {
                                     setState(
                                       () => _endScoreController.text = val,
                                     );
+                                  }
                                 },
                                 labelStyle: TextStyle(
                                   fontSize: 14,
