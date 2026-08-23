@@ -101,7 +101,7 @@ class RoundHistoryList extends StatelessWidget {
         final displayScores = roundHistory[reversedIndex];
 
         return Container(
-          key: ValueKey("round_${reversedIndex}"),
+          key: ValueKey("round_$reversedIndex"),
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.white,
