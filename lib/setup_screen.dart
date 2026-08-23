@@ -20,7 +20,7 @@ class SetupScreenState extends State<SetupScreen> {
   bool halvingRuleEnabled = true;
   bool winnerHalfPreviousScoreRule = true;
 
-  bool asafPenaltyRuleEnabled = false;
+  bool asafPenaltyRuleEnabled = true;
   bool penaltyOnTieRuleEnabled = true;
   final TextEditingController _penaltyScoreController = TextEditingController(
     text: '30',
@@ -232,83 +232,86 @@ class SetupScreenState extends State<SetupScreen> {
                   index: i,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: colorScheme.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: colorScheme.primary.withValues(alpha: 0.08),
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: colorScheme.primary.withValues(alpha: 0.08),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 16),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary.withValues(
-                                alpha: 0.08,
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 16),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.08,
+                                ),
+                                shape: BoxShape.circle,
                               ),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              "${i + 1}",
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: _playerControllers[i],
-                              focusNode: _playerFocusNodes[i],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                              textInputAction:
-                                  i == _playerControllers.length - 1
-                                  ? TextInputAction.done
-                                  : TextInputAction.next,
-                              onSubmitted: (_) {
-                                if (i < _playerControllers.length - 1) {
-                                  _playerFocusNodes[i + 1].requestFocus();
-                                }
-                              },
-                              decoration: const InputDecoration(
-                                hintText: "Enter name...",
-                                fillColor: Colors.transparent,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 18,
+                              child: Text(
+                                "${i + 1}",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
                                 ),
                               ),
                             ),
-                          ),
-                          if (_playerControllers.length > 2)
-                            IconButton(
-                              onPressed: () => _removePlayerField(i),
-                              icon: const Icon(
-                                Icons.remove_circle_outline_rounded,
-                                size: 22,
-                                color: Colors.redAccent,
+                            Expanded(
+                              child: TextField(
+                                controller: _playerControllers[i],
+                                focusNode: _playerFocusNodes[i],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                                textInputAction:
+                                    i == _playerControllers.length - 1
+                                    ? TextInputAction.done
+                                    : TextInputAction.next,
+                                onSubmitted: (_) {
+                                  if (i < _playerControllers.length - 1) {
+                                    _playerFocusNodes[i + 1].requestFocus();
+                                  }
+                                },
+                                decoration: const InputDecoration(
+                                  hintText: "Enter name...",
+                                  fillColor: Colors.transparent,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 18,
+                                  ),
+                                ),
                               ),
                             ),
-                          const Icon(
-                            Icons.drag_indicator_rounded,
-                            color: Colors.black12,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
+                            if (_playerControllers.length > 2)
+                              IconButton(
+                                onPressed: () => _removePlayerField(i),
+                                icon: const Icon(
+                                  Icons.remove_circle_outline_rounded,
+                                  size: 22,
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                            const Icon(
+                              Icons.drag_indicator_rounded,
+                              color: Colors.black12,
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -489,7 +492,7 @@ class SetupScreenState extends State<SetupScreen> {
                       _buildFancyInput(
                         context,
                         "Joining Penalty",
-                        "Points added to highest score for new players",
+                        "Penalty added to the current highest score for new players",
                         Icons.person_add_rounded,
                         _newPlayerJoinPenaltyController,
                       ),

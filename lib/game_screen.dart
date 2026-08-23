@@ -818,6 +818,26 @@ class _GameScreenState extends State<GameScreen> {
                     }),
                   ),
                 ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          "New players start with the current highest score + joining penalty.",
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black54),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 16),
                 InkWell(
                   onTap: () =>
@@ -871,13 +891,32 @@ class _GameScreenState extends State<GameScreen> {
 
   void _showAddPlayerDialog(BuildContext context, StateSetter setStateDialog) {
     final controller = TextEditingController();
+    final currentMax = _players.isEmpty
+        ? 0
+        : _players
+            .map((pl) => pl.totals.isEmpty ? 0 : pl.totals.last)
+            .reduce((a, b) => a > b ? a : b);
+    final projectedScore = currentMax + widget.newPlayerJoinPenalty;
+
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          "ADD NEW PLAYER",
-          style: TextStyle(fontWeight: FontWeight.w900),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("ADD NEW PLAYER", style: TextStyle(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 4),
+            Text(
+              "Starting Score: $projectedScore pts ($currentMax + ${widget.newPlayerJoinPenalty} penalty)",
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
         ),
         content: TextField(
           controller: controller,
@@ -979,13 +1018,6 @@ class _GameScreenState extends State<GameScreen> {
               widget.asafPenaltyRuleEnabled
                   ? "ON (${widget.penaltyScore} PTS)"
                   : "OFF",
-            ),
-            const SizedBox(height: 16),
-            _buildRuleInfoRow(
-              context,
-              Icons.person_add_rounded,
-              "Joining Penalty",
-              "${widget.newPlayerJoinPenalty} PTS",
             ),
             const SizedBox(height: 16),
             _buildRuleInfoRow(
