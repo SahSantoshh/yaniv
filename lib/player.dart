@@ -2,5 +2,7 @@ class Player {
   String name;
   List<int> scores = [];
   List<int> totals = [];
-  Player(this.name);
+  int joinedAtRound;
+  
+  Player(this.name, {this.joinedAtRound = 0});
 }

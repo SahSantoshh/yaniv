@@ -3,8 +3,7 @@ import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // The Flutter Gradle Plugin must be applied after the Android plugin.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -17,15 +16,11 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.sahsantoshh.yaniv"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
     defaultConfig {
@@ -39,10 +34,10 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+            storePassword = keystoreProperties.getProperty("storePassword")
         }
     }
 
