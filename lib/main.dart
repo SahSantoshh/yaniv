@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:yaniv/setup_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Initialize Mobile Ads SDK
+  MobileAds.instance.initialize();
+
   // Configure system UI for edge-to-edge compatibility with Android 15
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarDividerColor: Colors.transparent,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+    ),
+  );
 
   runApp(const YanivScoreApp());
 }
@@ -53,7 +59,10 @@ class YanivScoreApp extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
-            side: BorderSide(color: Colors.deepPurple.withValues(alpha: 0.1), width: 1),
+            side: BorderSide(
+              color: Colors.deepPurple.withValues(alpha: 0.1),
+              width: 1,
+            ),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
@@ -75,7 +84,10 @@ class YanivScoreApp extends StatelessWidget {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: const Color(0xFFF3E5F5).withValues(alpha: 0.5),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 18,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
@@ -88,7 +100,10 @@ class YanivScoreApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(color: Color(0xFF673AB7), width: 2),
           ),
-          labelStyle: const TextStyle(color: Color(0xFF673AB7), fontWeight: FontWeight.w500),
+          labelStyle: const TextStyle(
+            color: Color(0xFF673AB7),
+            fontWeight: FontWeight.w500,
+          ),
           hintStyle: TextStyle(color: Colors.deepPurple.withValues(alpha: 0.3)),
         ),
       ),

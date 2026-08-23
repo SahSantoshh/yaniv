@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'game_screen.dart';
 import 'player.dart';
@@ -8,6 +9,7 @@ class RoundHistoryList extends StatelessWidget {
   final List<List<RoundScore>> rawScoreHistory;
   final List<List<String>> roundHistory;
   final Function(int) onDeleteRound;
+  final Map<int, BannerAd> inlineAds;
 
   const RoundHistoryList({
     super.key,
@@ -15,7 +17,10 @@ class RoundHistoryList extends StatelessWidget {
     required this.rawScoreHistory,
     required this.roundHistory,
     required this.onDeleteRound,
+    required this.inlineAds,
   });
+
+  static const int _adInterval = 2;
 
   Widget _scoreDisplay(String scoreStr, Color baseTextColor) {
     bool isPenalty = false;
@@ -93,11 +98,33 @@ class RoundHistoryList extends StatelessWidget {
       );
     }
 
+    int adCount = roundHistory.length ~/ _adInterval;
+
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 100, top: 8),
-      itemCount: roundHistory.length,
+      itemCount: roundHistory.length + adCount,
       itemBuilder: (context, index) {
-        final reversedIndex = roundHistory.length - 1 - index;
+        // Check if this index should be an ad
+        if ((index + 1) % (_adInterval + 1) == 0) {
+          int adIndex = (index + 1) ~/ (_adInterval + 1);
+          final ad = inlineAds[adIndex];
+
+          if (ad != null) {
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              alignment: Alignment.center,
+              width: ad.size.width.toDouble(),
+              height: ad.size.height.toDouble(),
+              child: AdWidget(ad: ad),
+            );
+          } else {
+            return const SizedBox.shrink();
+          }
+        }
+
+        // Calculate the actual round index adjusting for ads shown so far
+        int roundIdxInList = index - (index ~/ (_adInterval + 1));
+        final reversedIndex = roundHistory.length - 1 - roundIdxInList;
         final displayScores = roundHistory[reversedIndex];
 
         return Container(

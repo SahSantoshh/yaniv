@@ -45,6 +45,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             manifestPlaceholders["appNameSuffix"] = " (Debug)"
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
             signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             isShrinkResources = false
@@ -52,6 +53,7 @@ android {
 
         release {
             manifestPlaceholders["appNameSuffix"] = ""
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-8062407442520576~6716644630"
             signingConfig = signingConfigs.getByName("release")
             // Enable code shrinking and resource shrinking
             isMinifyEnabled = true        // enables code shrinking (ProGuard/R8)

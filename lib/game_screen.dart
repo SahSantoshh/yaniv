@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:yaniv/ad_helper.dart';
 import 'package:yaniv/player.dart';
 import 'package:yaniv/round_history_widget.dart';
 import 'package:yaniv/scoreboard_widget.dart';
@@ -51,10 +54,106 @@ class _GameScreenState extends State<GameScreen> {
   final List<List<RoundScore>> _rawScoreHistory = [];
   final List<List<String>> roundHistory = [];
 
+  BannerAd? _bannerAd;
+  final Map<int, BannerAd> _inlineAds = {};
+  InterstitialAd? _interstitialAd;
+  Timer? _adTimer;
+
   @override
   void initState() {
     super.initState();
     _players = List.from(widget.players);
+
+    _loadMainBanner();
+    _loadInterstitialAd();
+  }
+
+  void _loadInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: AdHelper.interstitialGameplayId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          setState(() {
+            _interstitialAd = ad;
+          });
+        },
+        onAdFailedToLoad: (err) {
+          debugPrint('InterstitialAd failed to load: ${err.message}');
+          _interstitialAd = null;
+        },
+      ),
+    );
+  }
+
+  void _showInterstitialAd() {
+    if (_interstitialAd == null) {
+      debugPrint('Warning: attempt to show interstitial before loaded.');
+      return;
+    }
+    _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        _loadInterstitialAd();
+      },
+      onAdFailedToShowFullScreenContent: (ad, err) {
+        ad.dispose();
+        _loadInterstitialAd();
+      },
+    );
+    _interstitialAd!.show();
+    _interstitialAd = null;
+  }
+
+  void _loadMainBanner() {
+    BannerAd(
+      adUnitId: AdHelper.bannerAnchoredId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _bannerAd = ad as BannerAd;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          debugPrint('Failed to load a banner ad: ${err.message}');
+          ad.dispose();
+        },
+      ),
+    ).load();
+  }
+
+  void _loadInlineAd(int index) {
+    if (_inlineAds.containsKey(index)) return;
+
+    BannerAd(
+      adUnitId: AdHelper.bannerInlineId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _inlineAds[index] = ad as BannerAd;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          debugPrint('Failed to load an inline banner ad: ${err.message}');
+          ad.dispose();
+        },
+      ),
+    ).load();
+  }
+
+  @override
+  void dispose() {
+    _adTimer?.cancel();
+    _bannerAd?.dispose();
+    for (var ad in _inlineAds.values) {
+      ad.dispose();
+    }
+    _interstitialAd?.dispose();
+    super.dispose();
   }
 
   bool get gameOver => _players.any(
@@ -73,6 +172,20 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       _rawScoreHistory.add(inputScores);
       _recalculateTotals();
+
+      // Load an inline ad every 2 rounds
+      if (_rawScoreHistory.length % 2 == 0) {
+        _loadInlineAd(_rawScoreHistory.length ~/ 2);
+      }
+    });
+
+    // Show interstitial ad after 10 seconds of adding each round
+    // Reset existing timer to prevent multiple ads triggering too close together
+    _adTimer?.cancel();
+    _adTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted && !gameOver) {
+        _showInterstitialAd();
+      }
     });
   }
 
@@ -212,6 +325,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _checkGameEnd() {
     if (gameOver) {
+      _showInterstitialAd();
       final winner = currentWinner;
       final loser = _players.reduce(
         (a, b) => (a.totals.last) > (b.totals.last) ? a : b,
@@ -822,17 +936,27 @@ class _GameScreenState extends State<GameScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
                           "New players start with the current highest score + joining penalty.",
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black54),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black54,
+                          ),
                         ),
                       ),
                     ],
@@ -894,8 +1018,8 @@ class _GameScreenState extends State<GameScreen> {
     final currentMax = _players.isEmpty
         ? 0
         : _players
-            .map((pl) => pl.totals.isEmpty ? 0 : pl.totals.last)
-            .reduce((a, b) => a > b ? a : b);
+              .map((pl) => pl.totals.isEmpty ? 0 : pl.totals.last)
+              .reduce((a, b) => a > b ? a : b);
     final projectedScore = currentMax + widget.newPlayerJoinPenalty;
 
     showDialog(
@@ -906,14 +1030,19 @@ class _GameScreenState extends State<GameScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("ADD NEW PLAYER", style: TextStyle(fontWeight: FontWeight.w900)),
+            const Text(
+              "ADD NEW PLAYER",
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 4),
             Text(
               "Starting Score: $projectedScore pts ($currentMax + ${widget.newPlayerJoinPenalty} penalty)",
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -1132,6 +1261,14 @@ class _GameScreenState extends State<GameScreen> {
             const SizedBox(width: 8),
           ],
         ),
+        bottomNavigationBar: _bannerAd != null
+            ? Container(
+                color: Colors.white,
+                width: _bannerAd!.size.width.toDouble(),
+                height: _bannerAd!.size.height.toDouble(),
+                child: AdWidget(ad: _bannerAd!),
+              )
+            : null,
         body: Column(
           children: [
             _buildStandings(),
@@ -1141,6 +1278,7 @@ class _GameScreenState extends State<GameScreen> {
                 rawScoreHistory: _rawScoreHistory,
                 roundHistory: roundHistory,
                 onDeleteRound: _deleteRound,
+                inlineAds: _inlineAds,
               ),
             ),
           ],
