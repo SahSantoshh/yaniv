@@ -641,6 +641,10 @@ class _GameScreenState extends State<GameScreen> {
                                       controller: controllers[i],
                                       focusNode: focusNodes[i],
                                       keyboardType: TextInputType.number,
+                                      textInputAction:
+                                          i < activePlayers.length - 1
+                                          ? TextInputAction.next
+                                          : TextInputAction.done,
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w900,
