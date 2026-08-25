@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /android/key.properties
+
+# Placeholder Firebase config for local builds — replace with the real file from Firebase console
+android/app/google-services.json
