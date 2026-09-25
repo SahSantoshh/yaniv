@@ -86,6 +86,7 @@ android {
 
 dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
+    implementation("androidx.activity:activity-ktx:1.12.4")
 }
 
 flutter {

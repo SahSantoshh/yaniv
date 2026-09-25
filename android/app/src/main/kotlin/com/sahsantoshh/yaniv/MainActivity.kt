@@ -1,8 +1,15 @@
 package com.sahsantoshh.yaniv
 
-import io.flutter.embedding.android.FlutterActivity
+import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-// Edge-to-edge is handled by the Flutter engine via SystemUiMode.edgeToEdge
-// (set in main.dart); a manual WindowCompat.setDecorFitsSystemWindows call
-// here duplicates that and is what Play Console flags as a deprecated API.
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity is a ComponentActivity, so enableEdgeToEdge() is the
+// API Play Console looks for on Android 14 and below. Android 15+ is already
+// edge-to-edge when targetSdk is 35+.
+class MainActivity : FlutterFragmentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+    }
+}

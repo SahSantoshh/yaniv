@@ -69,11 +69,18 @@ class _GameHistoryScreenState extends State<GameHistoryScreen> {
         centerTitle: true,
       ),
       bottomNavigationBar: _bannerAd != null
-          ? Container(
+          ? ColoredBox(
               color: Colors.white,
-              width: _bannerAd!.size.width.toDouble(),
-              height: _bannerAd!.size.height.toDouble(),
-              child: AdWidget(ad: _bannerAd!),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewPaddingOf(context).bottom,
+                ),
+                child: SizedBox(
+                  width: _bannerAd!.size.width.toDouble(),
+                  height: _bannerAd!.size.height.toDouble(),
+                  child: AdWidget(ad: _bannerAd!),
+                ),
+              ),
             )
           : null,
       body: FutureBuilder<List<Map<String, dynamic>>>(
