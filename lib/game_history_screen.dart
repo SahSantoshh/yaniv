@@ -17,6 +17,8 @@ class _GameHistoryScreenState extends State<GameHistoryScreen> {
   @override
   void initState() {
     super.initState();
+    if (!AdHelper.supportsAds) return;
+
     BannerAd(
       adUnitId: AdHelper.bannerAnchoredId,
       request: const AdRequest(),

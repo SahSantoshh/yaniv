@@ -34,6 +34,9 @@ class AdHelper {
   static const String _prodInterstitialGameplayIOS =
       "ca-app-pub-8062407442520576/1123361001";
 
+  /// Widget tests and desktop hosts are neither Android nor iOS.
+  static bool get supportsAds => Platform.isAndroid || Platform.isIOS;
+
   static String get bannerAnchoredId {
     if (Platform.isAndroid) {
       return kDebugMode ? _testBannerIdAndroid : _prodBannerAnchoredAndroid;
