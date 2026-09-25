@@ -7,24 +7,13 @@ import 'package:yaniv/round_history_widget.dart';
 import 'package:yaniv/scoreboard_widget.dart';
 
 import 'game_history.dart';
-
-class RoundScore {
-  final int value;
-  final bool isPenalty;
-  final bool isInactive;
-  final bool isCaller;
-
-  const RoundScore(
-    this.value, {
-    this.isPenalty = false,
-    this.isInactive = false,
-    this.isCaller = false,
-  });
-}
+import 'rule_examples_screen.dart';
+import 'scoring_rules.dart';
 
 class GameScreen extends StatefulWidget {
   final List<Player> players;
   final int endScore;
+  final int callScore;
   final bool halvingRuleEnabled;
   final bool winnerHalfPreviousScoreRule;
   final bool asafPenaltyRuleEnabled;
@@ -36,6 +25,7 @@ class GameScreen extends StatefulWidget {
     super.key,
     required this.players,
     required this.endScore,
+    required this.callScore,
     required this.halvingRuleEnabled,
     required this.winnerHalfPreviousScoreRule,
     required this.asafPenaltyRuleEnabled,
@@ -69,6 +59,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _loadInterstitialAd() {
+    if (!AdHelper.supportsAds) return;
+
     InterstitialAd.load(
       adUnitId: AdHelper.interstitialGameplayId,
       request: const AdRequest(),
@@ -106,6 +98,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _loadMainBanner() {
+    if (!AdHelper.supportsAds) return;
+
     BannerAd(
       adUnitId: AdHelper.bannerAnchoredId,
       request: const AdRequest(),
@@ -126,6 +120,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _loadInlineAd(int index) {
     if (_inlineAds.containsKey(index)) return;
+    if (!AdHelper.supportsAds) return;
 
     BannerAd(
       adUnitId: AdHelper.bannerInlineId,
@@ -156,8 +151,9 @@ class _GameScreenState extends State<GameScreen> {
     super.dispose();
   }
 
-  bool get gameOver => _players.any(
-    (p) => p.totals.isNotEmpty && p.totals.last > widget.endScore,
+  bool get gameOver => matchIsOver(
+    totals: [for (final player in _players) player.totals],
+    endScore: widget.endScore,
   );
 
   Player get currentWinner {
@@ -189,6 +185,17 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  ScoringRules get _rules => ScoringRules(
+    endScore: widget.endScore,
+    callScore: widget.callScore,
+    halvingRuleEnabled: widget.halvingRuleEnabled,
+    winnerHalfPreviousScoreRule: widget.winnerHalfPreviousScoreRule,
+    asafPenaltyRuleEnabled: widget.asafPenaltyRuleEnabled,
+    penaltyOnTieRuleEnabled: widget.penaltyOnTieRuleEnabled,
+    penaltyScore: widget.penaltyScore,
+    newPlayerJoinPenalty: widget.newPlayerJoinPenalty,
+  );
+
   void _recalculateTotals() {
     for (var player in _players) {
       player.scores.clear();
@@ -197,125 +204,23 @@ class _GameScreenState extends State<GameScreen> {
 
     List<List<String>> newRoundHistory = [];
 
-    // Calculate halving thresholds based on target score
-    List<int> thresholds = [];
-    int current = widget.endScore;
-    while (current > 0 && current % 2 == 0) {
-      thresholds.add(current);
-      current = current ~/ 2;
-    }
-
     for (int r = 0; r < _rawScoreHistory.length; r++) {
-      final rawScores = _rawScoreHistory[r];
-      List<String> roundDisplay = [];
-      List<int> actualScoresForThisRound = [];
-
-      // Calculate max total from previous round for joiner penalty
-      int currentMaxTotal = 0;
-      if (_players.any((p) => p.totals.isNotEmpty)) {
-        currentMaxTotal = _players
-            .where((p) => p.totals.isNotEmpty)
-            .map((p) => p.totals.last)
-            .reduce((a, b) => a > b ? a : b);
-      }
-
-      for (int i = 0; i < _players.length; i++) {
-        Player player = _players[i];
-
-        if (r < player.joinedAtRound) {
-          actualScoresForThisRound.add(0);
-          roundDisplay.add("-");
-          continue;
-        }
-
-        if (rawScores[i].isInactive) {
-          actualScoresForThisRound.add(0);
-          roundDisplay.add("-");
-          continue;
-        }
-
-        int prevTotal;
-        // A player is joining ONLY if they enter after round 0
-        bool isJoining = r > 0 && player.joinedAtRound == r;
-
-        if (isJoining) {
-          prevTotal = currentMaxTotal + widget.newPlayerJoinPenalty;
-        } else {
-          prevTotal = player.totals.isEmpty ? 0 : player.totals.last;
-        }
-
-        int rawScore = rawScores[i].value;
-        int tentativeTotal = prevTotal + rawScore;
-
-        String displayStr = "";
-        int actualScore = rawScore;
-
-        if (widget.halvingRuleEnabled && thresholds.contains(tentativeTotal)) {
-          int halvedTotal = (tentativeTotal / 2).ceil();
-          actualScore = halvedTotal - prevTotal;
-
-          if (isJoining) {
-            displayStr =
-                "Join ($currentMaxTotal+${widget.newPlayerJoinPenalty}) + $rawScore = ~~$tentativeTotal~~ $halvedTotal";
-          } else {
-            displayStr =
-                "$prevTotal + $rawScore = ~~$tentativeTotal~~ $halvedTotal";
-          }
-        } else {
-          if (isJoining) {
-            displayStr =
-                "Join ($currentMaxTotal+${widget.newPlayerJoinPenalty}) + $rawScore = $tentativeTotal";
-          } else {
-            displayStr = "$prevTotal + $rawScore = $tentativeTotal";
-          }
-        }
-
-        if (rawScores[i].isPenalty) displayStr = "!!$displayStr!!";
-
-        actualScoresForThisRound.add(actualScore);
-        roundDisplay.add(displayStr);
-      }
-
-      if (widget.winnerHalfPreviousScoreRule) {
-        List<int> winnerIndices = [];
-        for (int i = 0; i < rawScores.length; i++) {
-          if (r >= _players[i].joinedAtRound &&
-              rawScores[i].value == 0 &&
-              !rawScores[i].isInactive) {
-            winnerIndices.add(i);
-          }
-        }
-
-        for (int winnerIndex in winnerIndices) {
-          Player winner = _players[winnerIndex];
-
-          // Winner bonus applies even to a joiner if they win their first round
-          int prevTotal;
-          if (r > 0 && winner.joinedAtRound == r) {
-            prevTotal = currentMaxTotal + widget.newPlayerJoinPenalty;
-          } else {
-            prevTotal = winner.totals.isEmpty ? 0 : winner.totals.last;
-          }
-
-          int newTotal = (prevTotal / 2).ceil();
-          actualScoresForThisRound[winnerIndex] = newTotal - prevTotal;
-          roundDisplay[winnerIndex] = "~~$prevTotal~~ $newTotal";
-        }
-      }
+      final scored = scoreRound(
+        rawScores: _rawScoreHistory[r],
+        prevTotals: [
+          for (final player in _players) List<int>.from(player.totals),
+        ],
+        joinedAtRound: [for (final player in _players) player.joinedAtRound],
+        roundIndex: r,
+        rules: _rules,
+      );
 
       for (int i = 0; i < _players.length; i++) {
         if (r < _players[i].joinedAtRound) continue;
-
-        _players[i].scores.add(actualScoresForThisRound[i]);
-        int prevTotal;
-        if (r > 0 && _players[i].joinedAtRound == r) {
-          prevTotal = currentMaxTotal + widget.newPlayerJoinPenalty;
-        } else {
-          prevTotal = _players[i].totals.isEmpty ? 0 : _players[i].totals.last;
-        }
-        _players[i].totals.add(prevTotal + actualScoresForThisRound[i]);
+        _players[i].scores.add(scored.deltas[i]);
+        _players[i].totals.add(scored.totals[i]);
       }
-      newRoundHistory.add(roundDisplay);
+      newRoundHistory.add(scored.display);
     }
 
     roundHistory.clear();
@@ -425,6 +330,7 @@ class _GameScreenState extends State<GameScreen> {
     final focusNodes = List.generate(activePlayers.length, (_) => FocusNode());
     int? selectedCallerIndex;
     String? errorMessage;
+    var forceAskCaller = false;
 
     showDialog(
       context: context,
@@ -432,6 +338,19 @@ class _GameScreenState extends State<GameScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (statefulContext, setStateDialog) {
           final colorScheme = Theme.of(context).colorScheme;
+          final enteredHands = <int>[
+            for (final controller in controllers)
+              if (controller.text.trim().isNotEmpty &&
+                  int.tryParse(controller.text.trim()) != null)
+                int.parse(controller.text.trim()),
+          ];
+          final showCaller =
+              widget.asafPenaltyRuleEnabled ||
+              forceAskCaller ||
+              roundNeedsCaller(
+                hands: enteredHands,
+                asafPenaltyRuleEnabled: false,
+              );
 
           return AlertDialog(
             backgroundColor: Colors.white,
@@ -506,7 +425,7 @@ class _GameScreenState extends State<GameScreen> {
                                 ],
                               ),
                             ),
-                          if (widget.asafPenaltyRuleEnabled) ...[
+                          if (showCaller) ...[
                             Text(
                               "WHO CALLED YANIV?",
                               style: TextStyle(
@@ -674,6 +593,7 @@ class _GameScreenState extends State<GameScreen> {
                                           ),
                                         ),
                                       ),
+                                      onChanged: (_) => setStateDialog(() {}),
                                       onSubmitted: (_) {
                                         if (i < activePlayers.length - 1) {
                                           focusNodes[i + 1].requestFocus();
@@ -717,68 +637,39 @@ class _GameScreenState extends State<GameScreen> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () async {
-                              if (widget.asafPenaltyRuleEnabled &&
-                                  selectedCallerIndex == null) {
-                                setStateDialog(
-                                  () =>
-                                      errorMessage = "Please select the caller",
-                                );
-                                return;
-                              }
                               List<int> activeHandTotals = controllers
                                   .map((c) => int.tryParse(c.text) ?? 0)
                                   .toList();
+                              final roundError = validateRound(
+                                hands: activeHandTotals,
+                                callerIndex: selectedCallerIndex,
+                                rules: _rules,
+                              );
+                              if (roundError != null) {
+                                setStateDialog(() {
+                                  errorMessage = roundError;
+                                  forceAskCaller = roundNeedsCaller(
+                                    hands: activeHandTotals,
+                                    asafPenaltyRuleEnabled:
+                                        widget.asafPenaltyRuleEnabled,
+                                  );
+                                });
+                                return;
+                              }
                               List<RoundScore> finalScores = [];
                               int activeIdx = 0;
-                              List<RoundScore> activeFinalScores = [];
-
-                              if (widget.asafPenaltyRuleEnabled) {
-                                int callerHand =
-                                    activeHandTotals[selectedCallerIndex!];
-                                int minHand = activeHandTotals.reduce(
-                                  (a, b) => a < b ? a : b,
-                                );
-                                bool isAsaf =
-                                    activeHandTotals.any(
-                                      (s) => s < callerHand,
-                                    ) ||
-                                    (widget.penaltyOnTieRuleEnabled &&
-                                        activeHandTotals
-                                                .where((s) => s == callerHand)
-                                                .length >
-                                            1);
-
-                                for (int i = 0; i < activePlayers.length; i++) {
-                                  final isThisCaller = i == selectedCallerIndex;
-                                  if (isThisCaller) {
-                                    activeFinalScores.add(
-                                      isAsaf
-                                          ? RoundScore(
-                                              activeHandTotals[i] +
-                                                  widget.penaltyScore,
-                                              isPenalty: true,
-                                              isCaller: true,
-                                            )
-                                          : const RoundScore(0, isCaller: true),
-                                    );
-                                  } else {
-                                    activeFinalScores.add(
-                                      (isAsaf && activeHandTotals[i] == minHand)
-                                          ? const RoundScore(0)
-                                          : RoundScore(activeHandTotals[i]),
-                                    );
-                                  }
-                                }
-                              } else {
-                                int minHand = activeHandTotals.reduce(
-                                  (a, b) => a < b ? a : b,
-                                );
-                                activeFinalScores = activeHandTotals
-                                    .map(
-                                      (s) => RoundScore(s == minHand ? 0 : s),
+                              final activeFinalScores = resolveHands(
+                                hands: activeHandTotals,
+                                callerIndex:
+                                    roundNeedsCaller(
+                                      hands: activeHandTotals,
+                                      asafPenaltyRuleEnabled:
+                                          widget.asafPenaltyRuleEnabled,
                                     )
-                                    .toList();
-                              }
+                                    ? selectedCallerIndex
+                                    : null,
+                                rules: _rules,
+                              );
 
                               for (var p in _players) {
                                 if (p.joinedAtRound <=
@@ -1098,12 +989,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showRulesInfo() {
-    List<int> thresholds = [];
-    int current = widget.endScore;
-    while (current > 0 && current % 2 == 0) {
-      thresholds.add(current);
-      current = current ~/ 2;
-    }
+    final thresholds = halvingThresholds(widget.endScore);
 
     showDialog(
       context: context,
@@ -1124,6 +1010,13 @@ class _GameScreenState extends State<GameScreen> {
               Icons.outlined_flag_rounded,
               "Target Score",
               "${widget.endScore} PTS",
+            ),
+            const SizedBox(height: 16),
+            _buildRuleInfoRow(
+              context,
+              Icons.front_hand_rounded,
+              "Call Score",
+              "${widget.callScore} PTS",
             ),
             const Divider(height: 32),
             _buildRuleInfoRow(
@@ -1171,13 +1064,24 @@ class _GameScreenState extends State<GameScreen> {
           ],
         ),
         actions: [
-          Center(
-            child: TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text(
-                "GOT IT",
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RuleExamplesScreen()),
+              );
+            },
+            child: const Text(
+              "EXAMPLES",
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text(
+              "GOT IT",
+              style: TextStyle(fontWeight: FontWeight.w900),
             ),
           ),
         ],

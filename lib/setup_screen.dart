@@ -5,6 +5,8 @@ import 'package:yaniv/player.dart';
 
 import 'game_history_screen.dart';
 import 'game_screen.dart';
+import 'rule_examples_screen.dart';
+import 'scoring_rules.dart';
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
@@ -18,6 +20,9 @@ class SetupScreenState extends State<SetupScreen> {
   final List<FocusNode> _playerFocusNodes = [];
   final TextEditingController _endScoreController = TextEditingController(
     text: '124',
+  );
+  final TextEditingController _callScoreController = TextEditingController(
+    text: '5',
   );
   bool halvingRuleEnabled = true;
   bool winnerHalfPreviousScoreRule = true;
@@ -41,6 +46,7 @@ class SetupScreenState extends State<SetupScreen> {
       node.dispose();
     }
     _endScoreController.dispose();
+    _callScoreController.dispose();
     _penaltyScoreController.dispose();
     _newPlayerJoinPenaltyController.dispose();
     for (var controller in _playerControllers) {
@@ -87,6 +93,8 @@ class SetupScreenState extends State<SetupScreen> {
   }
 
   void _loadInterstitialAd() {
+    if (!AdHelper.supportsAds) return;
+
     InterstitialAd.load(
       adUnitId: AdHelper.interstitialNavId,
       request: const AdRequest(),
@@ -142,13 +150,28 @@ class SetupScreenState extends State<SetupScreen> {
       nameSet.add(normalizedName);
     }
 
-    final endScoreStr = _endScoreController.text.trim();
-    final endScore = int.tryParse(endScoreStr) ?? 124;
+    final endScore = parseTargetScore(_endScoreController.text);
 
-    if (endScore % 2 != 0) {
+    final callScoreErrorText = callScoreSetupError(_callScoreController.text);
+    if (callScoreErrorText != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Target Score must be an even number"),
+          content: Text(callScoreErrorText),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
+    final targetError = targetScoreError(endScore);
+    if (targetError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(targetError),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -183,6 +206,7 @@ class SetupScreenState extends State<SetupScreen> {
         builder: (_) => GameScreen(
           players: players,
           endScore: endScore,
+          callScore: parseCallScore(_callScoreController.text),
           halvingRuleEnabled: halvingRuleEnabled,
           winnerHalfPreviousScoreRule: winnerHalfPreviousScoreRule,
           asafPenaltyRuleEnabled: asafPenaltyRuleEnabled,
@@ -200,6 +224,8 @@ class SetupScreenState extends State<SetupScreen> {
     super.initState();
     _addPlayerField(); // This one will get focus
     _addPlayerField(requestFocus: false);
+
+    if (!AdHelper.supportsAds) return;
 
     BannerAd(
       adUnitId: AdHelper.bannerAnchoredId,
@@ -534,6 +560,14 @@ class SetupScreenState extends State<SetupScreen> {
                           }).toList(),
                         ),
                       ),
+                      const SizedBox(height: 20),
+                      _buildFancyInput(
+                        context,
+                        "Call Score",
+                        "Highest hand that can call Yaniv",
+                        Icons.front_hand_rounded,
+                        _callScoreController,
+                      ),
                       const Divider(height: 48),
                       Text(
                         "ACTIVE RULES",
@@ -544,7 +578,25 @@ class SetupScreenState extends State<SetupScreen> {
                           letterSpacing: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const RuleExamplesScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'SEE EXAMPLES',
+                            style: TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       _buildFancySwitch(
                         context,
                         "Halving Logic",
