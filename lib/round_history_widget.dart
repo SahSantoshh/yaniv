@@ -40,7 +40,7 @@ class RoundHistoryList extends StatelessWidget {
       if (parts.length < 3) return Text(scoreStr, style: baseStyle);
 
       return RichText(
-        textAlign: TextAlign.center,
+        textAlign: TextAlign.end,
         text: TextSpan(
           style: baseStyle,
           children: [
@@ -64,7 +64,11 @@ class RoundHistoryList extends StatelessWidget {
         ),
       );
     } else {
-      return Text(scoreStr, style: baseStyle, textAlign: TextAlign.center);
+      return Text(
+        scoreStr,
+        style: baseStyle,
+        textAlign: TextAlign.end,
+      );
     }
   }
 
@@ -244,8 +248,9 @@ class RoundHistoryList extends StatelessWidget {
                       (i) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
+                            Flexible(
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -290,7 +295,13 @@ class RoundHistoryList extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            _scoreDisplay(displayScores[i], Colors.black87),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _scoreDisplay(
+                                displayScores[i],
+                                Colors.black87,
+                              ),
+                            ),
                           ],
                         ),
                       ),

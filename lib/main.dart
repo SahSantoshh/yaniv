@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:yaniv/ad_helper.dart';
 import 'package:yaniv/setup_screen.dart';
 
 Future<void> main() async {
@@ -22,8 +23,9 @@ Future<void> main() async {
     return true;
   };
 
-  // Initialize Mobile Ads SDK
-  MobileAds.instance.initialize();
+  if (AdHelper.supportsAds) {
+    MobileAds.instance.initialize();
+  }
 
   // Let the Flutter engine manage edge-to-edge via the modern (non-deprecated)
   // platform APIs, rather than setting bar colors directly.

@@ -73,6 +73,7 @@ void main() {
       );
 
       expect(scored.totals, [45, 20, 10]);
+      expect(scored.display[0], '!!10 + 5 + 30 = 45!!');
     });
 
     test('custom penalty is added to the caller hand', () {
@@ -247,6 +248,9 @@ void main() {
       );
 
       expect(scored.totals, [20, 20, 16]);
+      expect(scored.display[0], '40 + 0 = ~~40~~ 20');
+      expect(scored.display[1], '20 + 0 = 20');
+      expect(scored.display[2], '10 + 6 = 16');
     });
 
     test('half rule off: a called 0 adds 0, even if tie penalty is on', () {
@@ -320,7 +324,7 @@ void main() {
       );
 
       expect(scored.totals[0], 62);
-      expect(scored.display[0], contains('~~124~~'));
+      expect(scored.display[0], '120 + 4 = ~~124~~ 62');
     });
 
     test('halving off keeps the full total', () {
@@ -447,7 +451,7 @@ void main() {
       );
 
       expect(joined.totals[1], 55);
-      expect(joined.display[1], contains('Join (40+10)'));
+      expect(joined.display[1], '40 + 10 + 5 = 55');
     });
 
     test('a joiner who wins halves the starting total', () {
@@ -463,7 +467,7 @@ void main() {
       );
 
       expect(scored.totals, [43, 25]);
-      expect(scored.display[1], '~~50~~ 25');
+      expect(scored.display[1], '40 + 10 + 0 = ~~50~~ 25');
     });
 
     test('a join penalty of 0 starts from the highest total', () {
@@ -482,7 +486,7 @@ void main() {
       );
 
       expect(scored.totals, [43, 45]);
-      expect(scored.display[1], contains('Join (40+0)'));
+      expect(scored.display[1], '40 + 0 + 5 = 45');
     });
   });
 

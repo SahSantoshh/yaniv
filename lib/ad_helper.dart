@@ -34,8 +34,21 @@ class AdHelper {
   static const String _prodInterstitialGameplayIOS =
       "ca-app-pub-8062407442520576/1123361001";
 
+  /// Flip this to load ads in a debug or profile build.
+  /// Release builds ignore it and always show ads on Android and iOS.
+  static const bool showAdsInDebug = false;
+
   /// Widget tests and desktop hosts are neither Android nor iOS.
-  static bool get supportsAds => Platform.isAndroid || Platform.isIOS;
+  static bool get supportsAds => adsEnabled(
+    isMobile: Platform.isAndroid || Platform.isIOS,
+    isRelease: kReleaseMode,
+  );
+
+  static bool adsEnabled({required bool isMobile, required bool isRelease}) {
+    if (!isMobile) return false;
+    if (isRelease) return true;
+    return showAdsInDebug;
+  }
 
   static String get bannerAnchoredId {
     if (Platform.isAndroid) {
