@@ -32,6 +32,22 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
+        ndk {
+            // Only ABIs Flutter ships. Stops Play from serving empty splits
+            // (e.g. x86) that crash with MissingLibraryException: libflutter.so.
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+        }
+    }
+
+    // AGP 8+ leaves .so files inside the APK (extractNativeLibs=false).
+    // Flutter loads them via ReLinker, which often cannot see Play ABI
+    // splits and crashes: "Could not find 'libflutter.so' ... only found: []".
+    // Legacy packaging extracts libs to /data/app/.../lib so System.loadLibrary works.
+    // NDK 28 keeps the extracted ELF 16 KB-aligned for Play's page-size requirement.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 
     signingConfigs {
