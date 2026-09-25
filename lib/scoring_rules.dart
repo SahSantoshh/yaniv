@@ -8,8 +8,13 @@ class RoundScore {
   /// are not the round winner, so the winner-half rule does not apply.
   final bool skipWinnerHalf;
 
+  /// Points added on top of the hand, such as an Asaf penalty. The hand is
+  /// [value] minus [penalty].
+  final int penalty;
+
   const RoundScore(
     this.value, {
+    this.penalty = 0,
     this.isPenalty = false,
     this.isInactive = false,
     this.isCaller = false,
@@ -169,6 +174,7 @@ List<RoundScore> resolveHands({
         isAsaf
             ? RoundScore(
                 hands[i] + rules.penaltyScore,
+                penalty: rules.penaltyScore,
                 isPenalty: true,
                 isCaller: true,
               )
@@ -287,26 +293,33 @@ ScoredRound scoreRound({
         : (prevTotals[i].isEmpty ? 0 : prevTotals[i].last);
 
     final rawScore = rawScores[i].value;
+    final hand = rawScore - rawScores[i].penalty;
+    final penalty = rawScores[i].penalty;
     final tentativeTotal = prevTotal + rawScore;
     var actualScore = rawScore;
-    var displayStr = '';
+    int? replacedTotal;
+    var finalTotal = tentativeTotal;
 
     if (rules.halvingRuleEnabled && thresholds.contains(tentativeTotal)) {
       final halvedTotal = (tentativeTotal / 2).ceil();
       actualScore = halvedTotal - prevTotal;
-      displayStr = isJoining
-          ? 'Join ($currentMaxTotal+${rules.newPlayerJoinPenalty}) + $rawScore = ~~$tentativeTotal~~ $halvedTotal'
-          : '$prevTotal + $rawScore = ~~$tentativeTotal~~ $halvedTotal';
-    } else if (isJoining) {
-      displayStr =
-          'Join ($currentMaxTotal+${rules.newPlayerJoinPenalty}) + $rawScore = $tentativeTotal';
-    } else {
-      displayStr = '$prevTotal + $rawScore = $tentativeTotal';
+      replacedTotal = tentativeTotal;
+      finalTotal = halvedTotal;
     }
 
-    if (rawScores[i].isPenalty) displayStr = '!!$displayStr!!';
     deltas.add(actualScore);
-    display.add(displayStr);
+    display.add(
+      _roundLine(
+        previous: prevTotal,
+        hand: hand,
+        penalty: penalty,
+        finalTotal: finalTotal,
+        replacedTotal: replacedTotal,
+        joinBase: isJoining ? currentMaxTotal : null,
+        joinPenalty: isJoining ? rules.newPlayerJoinPenalty : null,
+        isPenalty: rawScores[i].isPenalty,
+      ),
+    );
   }
 
   if (rules.winnerHalfPreviousScoreRule) {
@@ -324,7 +337,16 @@ ScoredRound scoreRound({
           : (prevTotals[i].isEmpty ? 0 : prevTotals[i].last);
       final newTotal = (prevTotal / 2).ceil();
       deltas[i] = newTotal - prevTotal;
-      display[i] = '~~$prevTotal~~ $newTotal';
+      display[i] = _roundLine(
+        previous: prevTotal,
+        hand: 0,
+        penalty: 0,
+        finalTotal: newTotal,
+        replacedTotal: prevTotal,
+        joinBase: isJoining ? currentMaxTotal : null,
+        joinPenalty: isJoining ? rules.newPlayerJoinPenalty : null,
+        isPenalty: false,
+      );
     }
   }
 
@@ -342,4 +364,31 @@ ScoredRound scoreRound({
   }
 
   return ScoredRound(deltas: deltas, totals: totals, display: display);
+}
+
+String _roundLine({
+  required int previous,
+  required int hand,
+  required int penalty,
+  required int finalTotal,
+  required int? replacedTotal,
+  required int? joinBase,
+  required int? joinPenalty,
+  required bool isPenalty,
+}) {
+  final parts = <String>[];
+  if (joinBase != null && joinPenalty != null) {
+    parts.add('$joinBase');
+    parts.add('$joinPenalty');
+  } else {
+    parts.add('$previous');
+  }
+  parts.add('$hand');
+  if (penalty != 0) parts.add('$penalty');
+
+  final sum = parts.join(' + ');
+  final line = replacedTotal == null
+      ? '$sum = $finalTotal'
+      : '$sum = ~~$replacedTotal~~ $finalTotal';
+  return isPenalty ? '!!$line!!' : line;
 }
