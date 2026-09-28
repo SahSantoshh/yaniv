@@ -9,6 +9,8 @@ import 'package:yaniv/scoreboard_widget.dart';
 import 'game_history.dart';
 import 'rule_examples_screen.dart';
 import 'scoring_rules.dart';
+import 'game_share/game_snapshot.dart';
+import 'game_share/share_game_qr_screen.dart';
 
 class GameScreen extends StatefulWidget {
   final List<Player> players;
@@ -1152,6 +1154,30 @@ class _GameScreenState extends State<GameScreen> {
         appBar: AppBar(
           title: const Text("SCOREBOARD"),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.qr_code_rounded),
+              tooltip: "Share Game",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ShareGameQrScreen(
+                      snapshot: GameSnapshot(
+                        players: [
+                          for (final p in _players)
+                            PlayerSnapshot(
+                              name: p.name,
+                              joinedAtRound: p.joinedAtRound,
+                            ),
+                        ],
+                        roundHistory: _rawScoreHistory,
+                        rules: _rules,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.people_outline_rounded),
               onPressed: _showManagePlayersDialog,
