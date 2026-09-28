@@ -71,6 +71,21 @@ void main() {
     );
   });
 
+  test('flipping only the chunk-index header byte is caught as corrupted', () {
+    final body = Uint8List.fromList(List.generate(2500, (i) => i % 256));
+    final frames = chunkForQr(body);
+    final rawFrame = base64Decode(frames[0]);
+    final originalIndex = rawFrame[3];
+    final chunkCount = rawFrame[4];
+    // Pick a different, still in-bounds chunk index.
+    final newIndex = (originalIndex + 1) % chunkCount;
+    rawFrame[3] = newIndex;
+    final tamperedFrame = base64Encode(rawFrame);
+
+    final assembler = GameShareAssembler();
+    expect(assembler.addChunk(tamperedFrame), AddChunkResult.corrupted);
+  });
+
   test('a frame from a newer format version is rejected', () {
     final body = Uint8List.fromList(List.generate(10, (i) => i));
     final frames = chunkForQr(body);

@@ -39,13 +39,23 @@ List<String> chunkForQr(Uint8List body) {
         : body.length;
     final payload = body.sublist(start, end);
 
+    // Header covers magic bytes, frame version, chunk index, chunk count.
+    final header = Uint8List.fromList([
+      _magicByte1,
+      _magicByte2,
+      kQrFrameFormatVersion,
+      i,
+      chunkCount,
+    ]);
+    // The checksum covers the header too, so a misread that corrupts the
+    // chunk-index/chunk-count bytes is caught, not just payload corruption.
+    final checksumInput = BytesBuilder();
+    checksumInput.add(header);
+    checksumInput.add(payload);
+    final checksum = fletcher16(checksumInput.toBytes());
+
     final frame = BytesBuilder();
-    frame.addByte(_magicByte1);
-    frame.addByte(_magicByte2);
-    frame.addByte(kQrFrameFormatVersion);
-    frame.addByte(i);
-    frame.addByte(chunkCount);
-    final checksum = fletcher16(payload);
+    frame.add(header);
     frame.addByte((checksum >> 8) & 0xFF);
     frame.addByte(checksum & 0xFF);
     frame.add(payload);
@@ -83,7 +93,9 @@ class GameShareAssembler {
       return AddChunkResult.invalidFormat;
     }
 
-    if (frame.length < 7 || frame[0] != _magicByte1 || frame[1] != _magicByte2) {
+    if (frame.length < 7 ||
+        frame[0] != _magicByte1 ||
+        frame[1] != _magicByte2) {
       return AddChunkResult.invalidFormat;
     }
 
@@ -97,7 +109,12 @@ class GameShareAssembler {
     final expectedChecksum = (frame[5] << 8) | frame[6];
     final payload = frame.sublist(7);
 
-    if (fletcher16(payload) != expectedChecksum) {
+    final checksumInput = BytesBuilder();
+    checksumInput.add(
+      frame.sublist(0, 5),
+    ); // magic bytes + version + index + count
+    checksumInput.add(payload);
+    if (fletcher16(checksumInput.toBytes()) != expectedChecksum) {
       return AddChunkResult.corrupted;
     }
 
