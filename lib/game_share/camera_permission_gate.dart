@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+Future<PermissionStatus> _checkCameraStatus() {
+  return Permission.camera.status;
+}
 
 Future<PermissionStatus> _requestCameraPermission() {
   return Permission.camera.request();
@@ -7,17 +12,24 @@ Future<PermissionStatus> _requestCameraPermission() {
 
 /// Shows [granted] once camera permission is available; otherwise shows an
 /// explanation with a way to grant it (or open Settings if permanently
-/// denied). Re-checks whenever the app resumes, in case the user granted
-/// it from Settings and came back.
+/// denied).
+///
+/// [checkStatus] never shows an OS prompt and is safe to call on every app
+/// resume. [requestPermission] shows the OS prompt and is only called on
+/// first mount (when status isn't yet determined) or when the user taps the
+/// retry button — never automatically on resume, since the OS dialog itself
+/// triggers a resume event and would otherwise cause a second prompt.
 class CameraPermissionGate extends StatefulWidget {
   final WidgetBuilder granted;
-  final Future<PermissionStatus> Function() checkPermission;
+  final Future<PermissionStatus> Function() checkStatus;
+  final Future<PermissionStatus> Function() requestPermission;
   final Future<bool> Function() openSettings;
 
   const CameraPermissionGate({
     super.key,
     required this.granted,
-    this.checkPermission = _requestCameraPermission,
+    this.checkStatus = _checkCameraStatus,
+    this.requestPermission = _requestCameraPermission,
     this.openSettings = openAppSettings,
   });
 
@@ -28,12 +40,13 @@ class CameraPermissionGate extends StatefulWidget {
 class _CameraPermissionGateState extends State<CameraPermissionGate>
     with WidgetsBindingObserver {
   PermissionStatus? _status;
+  bool _requesting = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _refresh();
+    _initialCheck();
   }
 
   @override
@@ -45,13 +58,45 @@ class _CameraPermissionGateState extends State<CameraPermissionGate>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _refresh();
+      _refreshStatus();
     }
   }
 
-  Future<void> _refresh() async {
-    final status = await widget.checkPermission();
+  Future<void> _initialCheck() async {
+    final status = await _safeCall(widget.checkStatus);
+    if (status == PermissionStatus.granted ||
+        status == PermissionStatus.limited ||
+        status == PermissionStatus.permanentlyDenied) {
+      if (mounted) setState(() => _status = status);
+      return;
+    }
+    // Not yet determined, or previously denied but still askable: ask once.
+    await _request();
+  }
+
+  Future<void> _refreshStatus() async {
+    if (_requesting) return;
+    final status = await _safeCall(widget.checkStatus);
     if (mounted) setState(() => _status = status);
+  }
+
+  Future<void> _request() async {
+    if (_requesting) return;
+    _requesting = true;
+    final status = await _safeCall(widget.requestPermission);
+    _requesting = false;
+    if (mounted) setState(() => _status = status);
+  }
+
+  Future<PermissionStatus> _safeCall(
+    Future<PermissionStatus> Function() call,
+  ) async {
+    try {
+      return await call();
+    } on PlatformException {
+      // permission_handler throws if a request is already in flight.
+      return PermissionStatus.denied;
+    }
   }
 
   @override
@@ -74,7 +119,7 @@ class _CameraPermissionGateState extends State<CameraPermissionGate>
         return _PermissionMessage(
           message: 'Camera access is needed to scan a game QR code.',
           buttonLabel: 'GRANT ACCESS',
-          onPressed: _refresh,
+          onPressed: _request,
         );
     }
   }
