@@ -25,6 +25,27 @@ class GameShareVersionException implements Exception {
       'supports up to $kGameSnapshotFormatVersion';
 }
 
+/// The game's values don't fit the QR wire format (e.g. out of range, or
+/// too many players/rounds), so it cannot be encoded at all.
+class GameShareUnsupportedException implements Exception {
+  final String reason;
+  const GameShareUnsupportedException(this.reason);
+
+  @override
+  String toString() => 'Game cannot be shared via QR: $reason';
+}
+
+const int _maxUint16 = 0xFFFF;
+const int _maxUint8 = 0xFF;
+
+void _requireUint16(int value, String label) {
+  if (value < 0 || value > _maxUint16) {
+    throw GameShareUnsupportedException(
+      '$label must be between 0 and $_maxUint16 (was $value)',
+    );
+  }
+}
+
 /// Fletcher-16 checksum — cheap enough for a QR-misread integrity check,
 /// not meant to defend against a deliberate attacker.
 int fletcher16(Uint8List data) {
@@ -37,7 +58,45 @@ int fletcher16(Uint8List data) {
   return (sum2 << 8) | sum1;
 }
 
+void _validateSnapshot(GameSnapshot snapshot) {
+  final rules = snapshot.rules;
+  _requireUint16(rules.endScore, 'endScore');
+  _requireUint16(rules.callScore, 'callScore');
+  _requireUint16(rules.penaltyScore, 'penaltyScore');
+  _requireUint16(rules.newPlayerJoinPenalty, 'newPlayerJoinPenalty');
+
+  if (snapshot.players.isEmpty) {
+    throw const GameShareUnsupportedException(
+      'a game needs at least one player',
+    );
+  }
+  if (snapshot.players.length > _maxUint8) {
+    throw GameShareUnsupportedException(
+      'too many players (${snapshot.players.length}, max $_maxUint8)',
+    );
+  }
+  for (final player in snapshot.players) {
+    _requireUint16(player.joinedAtRound, 'joinedAtRound');
+    final nameBytes = utf8.encode(player.name);
+    if (nameBytes.length > _maxUint8) {
+      throw GameShareUnsupportedException(
+        'player name "${player.name}" is too long (${nameBytes.length} bytes, max $_maxUint8)',
+      );
+    }
+  }
+
+  _requireUint16(snapshot.roundHistory.length, 'round count');
+  for (final round in snapshot.roundHistory) {
+    for (final score in round) {
+      _requireUint16(score.value, 'round score value');
+      _requireUint16(score.penalty, 'round score penalty');
+    }
+  }
+}
+
 Uint8List encodeSnapshotBody(GameSnapshot snapshot) {
+  _validateSnapshot(snapshot);
+
   final writer = BytesBuilder();
   writer.addByte(kGameSnapshotFormatVersion);
 
@@ -146,6 +205,18 @@ GameSnapshot decodeSnapshotBody(Uint8List body) {
     roundHistory.add(round);
   }
 
+  if (players.isEmpty) {
+    throw const GameSharePayloadCorruptedException();
+  }
+  for (final player in players) {
+    if (player.joinedAtRound > roundHistory.length) {
+      throw const GameSharePayloadCorruptedException();
+    }
+  }
+  if (reader.hasRemaining) {
+    throw const GameSharePayloadCorruptedException();
+  }
+
   return GameSnapshot(
     players: players,
     roundHistory: roundHistory,
@@ -167,6 +238,8 @@ class _ByteReader {
   int _offset = 0;
 
   _ByteReader(this._bytes);
+
+  bool get hasRemaining => _offset < _bytes.length;
 
   int readByte() => _bytes[_offset++];
 

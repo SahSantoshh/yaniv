@@ -77,4 +77,28 @@ void main() {
     expect(find.text('Game too large to share via QR'), findsOneWidget);
     expect(find.byType(QrImageView), findsNothing);
   });
+
+  testWidgets(
+    "shows a distinct error when the game's values can't be shared via QR",
+    (tester) async {
+      final snapshot = GameSnapshot(
+        players: const [
+          PlayerSnapshot(name: 'Alice', joinedAtRound: 0),
+          PlayerSnapshot(name: 'Bob', joinedAtRound: 0),
+        ],
+        roundHistory: const [
+          [RoundScore(-1), RoundScore(12)],
+        ],
+        rules: const ScoringRules(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: ShareGameQrScreen(snapshot: snapshot)),
+      );
+      await tester.pump();
+
+      expect(find.text("This game can't be shared via QR"), findsOneWidget);
+      expect(find.byType(QrImageView), findsNothing);
+    },
+  );
 }

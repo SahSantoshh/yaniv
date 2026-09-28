@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -131,6 +130,152 @@ void main() {
       () => decodeSnapshotBody(rebuilt),
       throwsA(isA<GameShareVersionException>()),
     );
+  });
+
+  group('encode-side validation', () {
+    test('a negative round score throws GameShareUnsupportedException', () {
+      final snapshot = GameSnapshot(
+        players: const [PlayerSnapshot(name: 'Alice', joinedAtRound: 0)],
+        roundHistory: const [
+          [RoundScore(-1)],
+        ],
+        rules: const ScoringRules(),
+      );
+
+      expect(
+        () => encodeSnapshotBody(snapshot),
+        throwsA(isA<GameShareUnsupportedException>()),
+      );
+    });
+
+    test('an out-of-range endScore throws GameShareUnsupportedException', () {
+      final snapshot = GameSnapshot(
+        players: const [PlayerSnapshot(name: 'Alice', joinedAtRound: 0)],
+        roundHistory: const [],
+        rules: const ScoringRules(endScore: 0x10000),
+      );
+
+      expect(
+        () => encodeSnapshotBody(snapshot),
+        throwsA(isA<GameShareUnsupportedException>()),
+      );
+    });
+
+    test(
+      'a player name longer than 255 UTF-8 bytes throws GameShareUnsupportedException',
+      () {
+        final snapshot = GameSnapshot(
+          players: [PlayerSnapshot(name: 'A' * 256, joinedAtRound: 0)],
+          roundHistory: const [],
+          rules: const ScoringRules(),
+        );
+
+        expect(
+          () => encodeSnapshotBody(snapshot),
+          throwsA(isA<GameShareUnsupportedException>()),
+        );
+      },
+    );
+
+    test('more than 255 players throws GameShareUnsupportedException', () {
+      final snapshot = GameSnapshot(
+        players: [
+          for (var i = 0; i < 256; i++)
+            PlayerSnapshot(name: 'P$i', joinedAtRound: 0),
+        ],
+        roundHistory: const [],
+        rules: const ScoringRules(),
+      );
+
+      expect(
+        () => encodeSnapshotBody(snapshot),
+        throwsA(isA<GameShareUnsupportedException>()),
+      );
+    });
+
+    test('boundary values (255 players, 255-byte name, 0xFFFF value/penalty) '
+        'do not throw and round-trip correctly', () {
+      final players = [
+        PlayerSnapshot(name: 'A' * 255, joinedAtRound: 0),
+        for (var i = 1; i < 255; i++)
+          PlayerSnapshot(name: 'P$i', joinedAtRound: 0),
+      ];
+      expect(players.length, 255);
+
+      final snapshot = GameSnapshot(
+        players: players,
+        roundHistory: [
+          [
+            for (var i = 0; i < 255; i++)
+              const RoundScore(0xFFFF, penalty: 0xFFFF),
+          ],
+        ],
+        rules: const ScoringRules(),
+      );
+
+      final decoded = decodeSnapshotBody(encodeSnapshotBody(snapshot));
+
+      expect(decoded, snapshot);
+    });
+  });
+
+  group('decode-side consistency validation', () {
+    test('decoding a payload with zero players throws', () {
+      // Hand-built: version, rules (default), playerCount=0, roundCount=0.
+      final payload = <int>[
+        kGameSnapshotFormatVersion,
+        0, 124, // endScore
+        0, 5, // callScore
+        0, 30, // penaltyScore
+        0, 10, // newPlayerJoinPenalty
+        0x0F, // ruleFlags: all default rule toggles on
+        0, // playerCount
+        0, 0, // roundCount
+      ];
+      final rebuilt = _withChecksum(Uint8List.fromList(payload));
+
+      expect(
+        () => decodeSnapshotBody(rebuilt),
+        throwsA(isA<GameSharePayloadCorruptedException>()),
+      );
+    });
+
+    test(
+      'decoding a payload with joinedAtRound beyond the round count throws',
+      () {
+        final snapshot = GameSnapshot(
+          players: const [PlayerSnapshot(name: 'Alice', joinedAtRound: 5)],
+          roundHistory: const [],
+          rules: const ScoringRules(),
+        );
+        final body = encodeSnapshotBody(snapshot);
+
+        expect(
+          () => decodeSnapshotBody(body),
+          throwsA(isA<GameSharePayloadCorruptedException>()),
+        );
+      },
+    );
+
+    test('decoding a payload with unexpected trailing bytes throws', () {
+      final snapshot = GameSnapshot(
+        players: const [PlayerSnapshot(name: 'Alice', joinedAtRound: 0)],
+        roundHistory: const [],
+        rules: const ScoringRules(),
+      );
+      final body = encodeSnapshotBody(snapshot);
+      final payloadWithoutChecksum = body.sublist(0, body.length - 2);
+      final withTrailingByte = Uint8List.fromList([
+        ...payloadWithoutChecksum,
+        0xAB,
+      ]);
+      final rebuilt = _withChecksum(withTrailingByte);
+
+      expect(
+        () => decodeSnapshotBody(rebuilt),
+        throwsA(isA<GameSharePayloadCorruptedException>()),
+      );
+    });
   });
 }
 

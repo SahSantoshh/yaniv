@@ -37,6 +37,8 @@ class _ShareGameQrScreenState extends State<ShareGameQrScreen> {
       }
     } on GameShareTooLargeException catch (e) {
       _error = e;
+    } on GameShareUnsupportedException catch (e) {
+      _error = e;
     }
   }
 
@@ -52,10 +54,12 @@ class _ShareGameQrScreenState extends State<ShareGameQrScreen> {
       appBar: AppBar(title: const Text('SHARE GAME')),
       body: Center(
         child: _error != null
-            ? const Padding(
-                padding: EdgeInsets.all(24),
+            ? Padding(
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Game too large to share via QR',
+                  _error is GameShareUnsupportedException
+                      ? "This game can't be shared via QR"
+                      : 'Game too large to share via QR',
                   textAlign: TextAlign.center,
                 ),
               )
