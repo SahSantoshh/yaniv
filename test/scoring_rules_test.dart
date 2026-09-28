@@ -538,4 +538,36 @@ void main() {
       expect(targetScoreError(125), 'Target Score must be an even number');
     });
   });
+
+  group('value equality', () {
+    test('two RoundScore instances with the same fields are equal', () {
+      const a = RoundScore(35, penalty: 30, isPenalty: true, isCaller: true);
+      final b = RoundScore(35, penalty: 30, isPenalty: true, isCaller: true);
+
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+    });
+
+    test('RoundScore instances with different fields are not equal', () {
+      const a = RoundScore(0, isCaller: true);
+      const b = RoundScore(0, skipWinnerHalf: true);
+
+      expect(a == b, isFalse);
+    });
+
+    test('two ScoringRules with the same fields are equal', () {
+      const a = ScoringRules(endScore: 150, callScore: 7);
+      const b = ScoringRules(endScore: 150, callScore: 7);
+
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+    });
+
+    test('ScoringRules with different fields are not equal', () {
+      const a = ScoringRules(endScore: 150);
+      const b = ScoringRules(endScore: 124);
+
+      expect(a == b, isFalse);
+    });
+  });
 }

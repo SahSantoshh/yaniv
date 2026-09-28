@@ -20,6 +20,26 @@ class RoundScore {
     this.isCaller = false,
     this.skipWinnerHalf = false,
   });
+
+  @override
+  bool operator ==(Object other) =>
+      other is RoundScore &&
+      value == other.value &&
+      penalty == other.penalty &&
+      isPenalty == other.isPenalty &&
+      isInactive == other.isInactive &&
+      isCaller == other.isCaller &&
+      skipWinnerHalf == other.skipWinnerHalf;
+
+  @override
+  int get hashCode => Object.hash(
+    value,
+    penalty,
+    isPenalty,
+    isInactive,
+    isCaller,
+    skipWinnerHalf,
+  );
 }
 
 class ScoringRules {
@@ -42,6 +62,30 @@ class ScoringRules {
     this.penaltyScore = 30,
     this.newPlayerJoinPenalty = 10,
   });
+
+  @override
+  bool operator ==(Object other) =>
+      other is ScoringRules &&
+      endScore == other.endScore &&
+      callScore == other.callScore &&
+      halvingRuleEnabled == other.halvingRuleEnabled &&
+      winnerHalfPreviousScoreRule == other.winnerHalfPreviousScoreRule &&
+      asafPenaltyRuleEnabled == other.asafPenaltyRuleEnabled &&
+      penaltyOnTieRuleEnabled == other.penaltyOnTieRuleEnabled &&
+      penaltyScore == other.penaltyScore &&
+      newPlayerJoinPenalty == other.newPlayerJoinPenalty;
+
+  @override
+  int get hashCode => Object.hash(
+    endScore,
+    callScore,
+    halvingRuleEnabled,
+    winnerHalfPreviousScoreRule,
+    asafPenaltyRuleEnabled,
+    penaltyOnTieRuleEnabled,
+    penaltyScore,
+    newPlayerJoinPenalty,
+  );
 }
 
 /// Null when the hand may call. Otherwise the reason it cannot.
