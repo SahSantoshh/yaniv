@@ -36,8 +36,11 @@ class _ScanGameQrScreenState extends State<ScanGameQrScreen> {
   void _handleFrame(String raw) {
     switch (_assembler.addChunk(raw)) {
       case AddChunkResult.invalidFormat:
-      case AddChunkResult.corrupted:
         setState(() => _statusMessage = 'Not a valid game QR');
+        break;
+      case AddChunkResult.corrupted:
+        // Likely a transient camera misread of a QR the user is legitimately
+        // scanning; drop it silently and keep showing prior progress.
         break;
       case AddChunkResult.versionMismatch:
         _controller.stop();
@@ -62,6 +65,9 @@ class _ScanGameQrScreenState extends State<ScanGameQrScreen> {
     try {
       final snapshot = decodeSnapshotBody(_assembler.assembleBody());
       widget.onImported(snapshot);
+    } on GameShareVersionException {
+      // Newer snapshot format than this app supports: retrying can't help.
+      setState(() => _statusMessage = 'Update the app to import this game');
     } catch (_) {
       _assembler.reset();
       _controller.start();
