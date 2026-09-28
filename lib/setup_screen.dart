@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:yaniv/ad_helper.dart';
 import 'package:yaniv/player.dart';
+import 'game_share/game_snapshot.dart';
+import 'game_share/scan_game_qr_screen.dart';
 
 import 'game_history_screen.dart';
 import 'game_screen.dart';
@@ -219,6 +221,30 @@ class SetupScreenState extends State<SetupScreen> {
     ).then((_) => _loadInterstitialAd()); // Reload for next time
   }
 
+  void _navigateToImportedGame(GameSnapshot snapshot) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GameScreen(
+          players: [
+            for (final p in snapshot.players)
+              Player(p.name, joinedAtRound: p.joinedAtRound),
+          ],
+          initialRoundHistory: snapshot.roundHistory,
+          endScore: snapshot.rules.endScore,
+          callScore: snapshot.rules.callScore,
+          halvingRuleEnabled: snapshot.rules.halvingRuleEnabled,
+          winnerHalfPreviousScoreRule:
+              snapshot.rules.winnerHalfPreviousScoreRule,
+          asafPenaltyRuleEnabled: snapshot.rules.asafPenaltyRuleEnabled,
+          penaltyOnTieRuleEnabled: snapshot.rules.penaltyOnTieRuleEnabled,
+          penaltyScore: snapshot.rules.penaltyScore,
+          newPlayerJoinPenalty: snapshot.rules.newPlayerJoinPenalty,
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -293,6 +319,23 @@ class SetupScreenState extends State<SetupScreen> {
             title: const Text("YANIV"),
             centerTitle: true,
             actions: [
+              IconButton(
+                icon: const Icon(Icons.qr_code_scanner_rounded),
+                tooltip: "Join via QR",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ScanGameQrScreen(
+                        onImported: (snapshot) {
+                          Navigator.pop(context);
+                          _navigateToImportedGame(snapshot);
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.history_rounded),
                 onPressed: () {

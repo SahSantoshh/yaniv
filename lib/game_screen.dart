@@ -22,6 +22,7 @@ class GameScreen extends StatefulWidget {
   final bool penaltyOnTieRuleEnabled;
   final int penaltyScore;
   final int newPlayerJoinPenalty;
+  final List<List<RoundScore>>? initialRoundHistory;
 
   const GameScreen({
     super.key,
@@ -34,6 +35,7 @@ class GameScreen extends StatefulWidget {
     required this.penaltyOnTieRuleEnabled,
     required this.penaltyScore,
     required this.newPlayerJoinPenalty,
+    this.initialRoundHistory,
   });
 
   @override
@@ -55,6 +57,10 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     _players = List.from(widget.players);
+    if (widget.initialRoundHistory != null) {
+      _rawScoreHistory.addAll(widget.initialRoundHistory!);
+      _recalculateTotals();
+    }
 
     _loadMainBanner();
     _loadInterstitialAd();
