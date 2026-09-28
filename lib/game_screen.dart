@@ -12,6 +12,8 @@ import 'scoring_rules.dart';
 import 'game_share/game_snapshot.dart';
 import 'game_share/share_game_qr_screen.dart';
 
+enum _GameMenuAction { shareQr, rules, endMatch }
+
 class GameScreen extends StatefulWidget {
   final List<Player> players;
   final int endScore;
@@ -1134,6 +1136,24 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _shareGameViaQr() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ShareGameQrScreen(
+          snapshot: GameSnapshot(
+            players: [
+              for (final p in _players)
+                PlayerSnapshot(name: p.name, joinedAtRound: p.joinedAtRound),
+            ],
+            roundHistory: _rawScoreHistory,
+            rules: _rules,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStandings() {
     return Scoreboard(
       players: _players,
@@ -1161,42 +1181,45 @@ class _GameScreenState extends State<GameScreen> {
           title: const Text("SCOREBOARD"),
           actions: [
             IconButton(
-              icon: const Icon(Icons.qr_code_rounded),
-              tooltip: "Share Game",
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ShareGameQrScreen(
-                      snapshot: GameSnapshot(
-                        players: [
-                          for (final p in _players)
-                            PlayerSnapshot(
-                              name: p.name,
-                              joinedAtRound: p.joinedAtRound,
-                            ),
-                        ],
-                        roundHistory: _rawScoreHistory,
-                        rules: _rules,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            IconButton(
               icon: const Icon(Icons.people_outline_rounded),
               onPressed: _showManagePlayersDialog,
               tooltip: "Manage Players",
             ),
-            IconButton(
-              icon: const Icon(Icons.info_outline_rounded),
-              onPressed: _showRulesInfo,
-              tooltip: "Match Rules",
-            ),
-            IconButton(
-              icon: const Icon(Icons.close_rounded),
-              onPressed: () => Navigator.maybePop(context),
+            PopupMenuButton<_GameMenuAction>(
+              icon: const Icon(Icons.more_vert_rounded),
+              onSelected: (action) {
+                switch (action) {
+                  case _GameMenuAction.shareQr:
+                    _shareGameViaQr();
+                  case _GameMenuAction.rules:
+                    _showRulesInfo();
+                  case _GameMenuAction.endMatch:
+                    Navigator.maybePop(context);
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: _GameMenuAction.shareQr,
+                  child: ListTile(
+                    leading: Icon(Icons.qr_code_rounded),
+                    title: Text("Share via QR"),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _GameMenuAction.rules,
+                  child: ListTile(
+                    leading: Icon(Icons.info_outline_rounded),
+                    title: Text("Match Rules"),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _GameMenuAction.endMatch,
+                  child: ListTile(
+                    leading: Icon(Icons.close_rounded),
+                    title: Text("End Match"),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 8),
           ],

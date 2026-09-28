@@ -298,25 +298,69 @@ class SetupScreenState extends State<SetupScreen> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      bottomNavigationBar: _bannerAd != null
-          ? ColoredBox(
-              color: Colors.white,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.viewPaddingOf(context).bottom,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: ColoredBox(
+          color: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton(
+                  onPressed: _startGame,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(0),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "START NEW MATCH",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Icon(Icons.play_arrow_rounded, size: 24),
+                    ],
+                  ),
                 ),
-                child: SizedBox(
-                  width: _bannerAd!.size.width.toDouble(),
-                  height: _bannerAd!.size.height.toDouble(),
-                  child: AdWidget(ad: _bannerAd!),
-                ),
-              ),
-            )
-          : null,
+                if (_bannerAd != null) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: _bannerAd!.size.width.toDouble(),
+                    height: _bannerAd!.size.height.toDouble(),
+                    child: AdWidget(ad: _bannerAd!),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
       body: CustomScrollView(
         slivers: [
           SliverAppBar.large(
-            title: const Text("YANIV"),
+            backgroundColor: colorScheme.surface,
+            surfaceTintColor: colorScheme.surface,
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/icons/app_logo.png', height: 48, width: 48),
+                const SizedBox(width: 10),
+                const Text("YANIV"),
+              ],
+            ),
             centerTitle: true,
             actions: [
               IconButton(
@@ -705,6 +749,7 @@ class SetupScreenState extends State<SetupScreen> {
                               const SizedBox(height: 20),
                               TextField(
                                 controller: _penaltyScoreController,
+                                enabled: penaltyOnTieRuleEnabled,
                                 keyboardType: TextInputType.number,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -731,35 +776,6 @@ class SetupScreenState extends State<SetupScreen> {
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 40),
-                ElevatedButton(
-                  onPressed: _startGame,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 22),
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 12,
-                    shadowColor: colorScheme.primary.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "START NEW MATCH",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Icon(Icons.play_arrow_rounded, size: 24),
                     ],
                   ),
                 ),

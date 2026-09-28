@@ -24,7 +24,11 @@ class RuleExamplesScreen extends StatelessWidget {
                 flex: [3, 4, 4],
                 rows: [
                   ['At the limit', 'Call score 5, A calls 5', 'Round is saved'],
-                  ['Below the limit', 'Call score 5, A calls 0', 'Round is saved'],
+                  [
+                    'Below the limit',
+                    'Call score 5, A calls 0',
+                    'Round is saved',
+                  ],
                   [
                     'Above the limit',
                     'Call score 5, A calls 6',
@@ -243,7 +247,8 @@ class RuleExamplesScreen extends StatelessWidget {
           ),
           _Section(
             title: 'Joining',
-            body: 'A new player starts from the highest total plus the join penalty.',
+            body:
+                'A new player starts from the highest total plus the join penalty.',
             tables: [
               _Table(
                 caption:
@@ -357,15 +362,9 @@ class _Section extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             body,
-            style: TextStyle(
-              color: colorScheme.onSurfaceVariant,
-              height: 1.35,
-            ),
+            style: TextStyle(color: colorScheme.onSurfaceVariant, height: 1.35),
           ),
-          for (final table in tables) ...[
-            const SizedBox(height: 12),
-            table,
-          ],
+          for (final table in tables) ...[const SizedBox(height: 12), table],
         ],
       ),
     );
@@ -388,9 +387,7 @@ class _Table extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final weights = flex.isEmpty
-        ? List<int>.filled(columns.length, 1)
-        : flex;
+    final weights = flex.isEmpty ? List<int>.filled(columns.length, 1) : flex;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -428,8 +425,7 @@ class _Table extends StatelessWidget {
                     color: colorScheme.primary.withValues(alpha: 0.08),
                   ),
                   children: [
-                    for (final column in columns)
-                      _Cell(column, header: true),
+                    for (final column in columns) _Cell(column, header: true),
                   ],
                 ),
                 for (var r = 0; r < rows.length; r++)

@@ -64,11 +64,7 @@ class RoundHistoryList extends StatelessWidget {
         ),
       );
     } else {
-      return Text(
-        scoreStr,
-        style: baseStyle,
-        textAlign: TextAlign.end,
-      );
+      return Text(scoreStr, style: baseStyle, textAlign: TextAlign.end);
     }
   }
 

@@ -65,9 +65,11 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # yaniv.png is the launcher-icon source only. It is 1024x1024, and shipping
+  # yanivlogo2.png is the launcher-icon source only. It is 1024x1024, and shipping
   # it as a Flutter asset decodes to about 4 MB if anything loads it.
-  #   - images/a_dot_ham.jpeg
+  # app_logo.png is a 192x192 downscale of it for in-app UI use.
+  assets:
+    - assets/icons/app_logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
