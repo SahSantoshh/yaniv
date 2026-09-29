@@ -321,7 +321,7 @@ packages:
     source: hosted
     version: "14.1.0"
   permission_handler_apple:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
       name: permission_handler_apple
       sha256: "066bbbc60031b63b916a3871e7bb4b6a8c5e7cec8146dafec53d1da304eff0a5"
@@ -409,7 +409,7 @@ packages:
     source: hosted
     version: "2.4.28"
   shared_preferences_foundation:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
       name: shared_preferences_foundation
       sha256: "2ec3934efa51e46117f23031cc141b8fc878e8525b94ec1ea4f7f586cf1b47ea"
@@ -518,7 +518,7 @@ packages:
     source: hosted
     version: "6.3.33"
   url_launcher_ios:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
       name: url_launcher_ios
       sha256: "8faa1aab294f1ab4040b43660c887b0418d5fa4f0cffef76a484e6aa1092eb4a"
@@ -614,7 +614,7 @@ packages:
     source: hosted
     version: "2.15.1"
   webview_flutter_wkwebview:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
       name: webview_flutter_wkwebview
       sha256: fe359c7fac1002124b5b9e2ba3a41906bbb9b2d029ccb4a0067404d8f3704730

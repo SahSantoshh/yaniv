@@ -43,16 +43,6 @@ dependencies:
   permission_handler: ^13.0.2
   url_launcher: ^6.3.2
 
-# Several late-2026 plugin releases on pub.dev omit native Sources/ (CocoaPods
-# then creates empty aggregate targets → "Module X not found"). See docs/ios-spm.md.
-dependency_overrides:
-  firebase_core: 4.15.0
-  mobile_scanner: 7.4.2
-  permission_handler_apple: 9.6.2
-  shared_preferences_foundation: 2.5.7
-  url_launcher_ios: 6.4.2
-  webview_flutter_wkwebview: 3.26.1
-
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   flutter_test:
