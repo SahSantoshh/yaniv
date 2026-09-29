@@ -4,6 +4,15 @@ Copy-paste ready fields for App Store Connect. Keep metadata accurate (Guideline
 
 **Version in app:** `1.4.0` (build `7`) — update What’s New when you bump.
 
+### App Store Connect record
+
+| Field | Value |
+|---|---|
+| **Name** | Yaniv Score Tracker |
+| **SKU** | `yaniv-sahh` |
+| **Apple ID** | `6817246142` |
+| **Bundle ID** | `com.sahsantoshh.yaniv` |
+
 **Privacy Policy URL:** https://sahsantoshh.com/legal/yaniv/privacy/  
 **Support URL:** https://sahsantoshh.com/legal/yaniv/privacy/  
 (Apple requires an https Support URL; `mailto:` is not accepted. Support is email-only — the privacy page already lists `sahsantoshh@gmail.com`. In-app: Privacy → tap the email.)  
