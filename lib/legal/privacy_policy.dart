@@ -5,10 +5,16 @@ const String kPrivacyPolicyUrl = 'https://sahsantoshh.com/legal/yaniv/privacy/';
 
 const String kPrivacyPolicyContactEmail = 'sahsantoshh@gmail.com';
 
-/// Opens the hosted privacy policy in an external browser.
-Future<bool> openPrivacyPolicy() {
-  return launchUrl(
-    Uri.parse(kPrivacyPolicyUrl),
-    mode: LaunchMode.externalApplication,
-  );
+/// Google’s form for reporting inappropriate ads (Guideline 2.5.18).
+const String kReportInappropriateAdUrl =
+    'https://support.google.com/ads/answer/2662922';
+
+Future<bool> _openUrl(String url) {
+  return launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
 }
+
+/// Opens the hosted privacy policy in an external browser.
+Future<bool> openPrivacyPolicy() => _openUrl(kPrivacyPolicyUrl);
+
+/// Opens Google’s “Report an ad” help page.
+Future<bool> openReportInappropriateAd() => _openUrl(kReportInappropriateAdUrl);

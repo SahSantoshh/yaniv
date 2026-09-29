@@ -1,7 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:yaniv/ad_consent.dart';
 import 'package:yaniv/ad_helper.dart';
+import 'package:yaniv/interstitial_cadence.dart';
 import 'package:yaniv/player.dart';
 import 'package:yaniv/round_history_widget.dart';
 import 'package:yaniv/scoreboard_widget.dart';
@@ -53,7 +54,7 @@ class _GameScreenState extends State<GameScreen> {
   BannerAd? _bannerAd;
   final Map<int, BannerAd> _inlineAds = {};
   InterstitialAd? _interstitialAd;
-  Timer? _adTimer;
+  final InterstitialCadence _interstitialCadence = InterstitialCadence();
 
   @override
   void initState() {
@@ -73,7 +74,7 @@ class _GameScreenState extends State<GameScreen> {
 
     InterstitialAd.load(
       adUnitId: AdHelper.interstitialGameplayId,
-      request: const AdRequest(),
+      request: AdConsent.adRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
           setState(() {
@@ -88,7 +89,7 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  void _showInterstitialAd() {
+  void _showInterstitialAd({bool countTowardCadence = false}) {
     if (_interstitialAd == null) {
       debugPrint('Warning: attempt to show interstitial before loaded.');
       return;
@@ -105,6 +106,9 @@ class _GameScreenState extends State<GameScreen> {
     );
     _interstitialAd!.show();
     _interstitialAd = null;
+    if (countTowardCadence) {
+      _interstitialCadence.markShown();
+    }
   }
 
   void _loadMainBanner() {
@@ -112,7 +116,7 @@ class _GameScreenState extends State<GameScreen> {
 
     BannerAd(
       adUnitId: AdHelper.bannerAnchoredId,
-      request: const AdRequest(),
+      request: AdConsent.adRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (ad) {
@@ -134,7 +138,7 @@ class _GameScreenState extends State<GameScreen> {
 
     BannerAd(
       adUnitId: AdHelper.bannerInlineId,
-      request: const AdRequest(),
+      request: AdConsent.adRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (ad) {
@@ -152,7 +156,6 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
-    _adTimer?.cancel();
     _bannerAd?.dispose();
     for (var ad in _inlineAds.values) {
       ad.dispose();
@@ -185,14 +188,10 @@ class _GameScreenState extends State<GameScreen> {
       }
     });
 
-    // Show interstitial ad after 10 seconds of adding each round
-    // Reset existing timer to prevent multiple ads triggering too close together
-    _adTimer?.cancel();
-    _adTimer = Timer(const Duration(seconds: 10), () {
-      if (mounted && !gameOver) {
-        _showInterstitialAd();
-      }
-    });
+    // Gameplay interstitial: every N rounds with a cooldown (not every round).
+    if (!gameOver && _interstitialCadence.shouldShowAfterRound()) {
+      _showInterstitialAd(countTowardCadence: true);
+    }
   }
 
   ScoringRules get _rules => ScoringRules(

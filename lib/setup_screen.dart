@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:yaniv/ad_consent.dart';
 import 'package:yaniv/ad_helper.dart';
+import 'package:yaniv/app_names.dart';
 import 'package:yaniv/player.dart';
 import 'game_share/game_snapshot.dart';
 import 'game_share/scan_game_qr_screen.dart';
@@ -100,7 +102,7 @@ class SetupScreenState extends State<SetupScreen> {
 
     InterstitialAd.load(
       adUnitId: AdHelper.interstitialNavId,
-      request: const AdRequest(),
+      request: AdConsent.adRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
           _interstitialAd = ad;
@@ -256,7 +258,7 @@ class SetupScreenState extends State<SetupScreen> {
 
     BannerAd(
       adUnitId: AdHelper.bannerAnchoredId,
-      request: const AdRequest(),
+      request: AdConsent.adRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (ad) {
@@ -359,7 +361,7 @@ class SetupScreenState extends State<SetupScreen> {
               children: [
                 Image.asset('assets/icons/app_logo.png', height: 48, width: 48),
                 const SizedBox(width: 10),
-                const Text("YANIV"),
+                const Text(kAppBrandName),
               ],
             ),
             centerTitle: true,

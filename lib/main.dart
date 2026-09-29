@@ -6,7 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:yaniv/ad_consent.dart';
 import 'package:yaniv/ad_helper.dart';
+import 'package:yaniv/app_names.dart';
 import 'package:yaniv/setup_screen.dart';
 
 Future<void> main() async {
@@ -24,7 +26,8 @@ Future<void> main() async {
   };
 
   if (AdHelper.supportsAds) {
-    MobileAds.instance.initialize();
+    await AdConsent.prepareForAds();
+    await MobileAds.instance.initialize();
   }
 
   // Let the Flutter engine manage edge-to-edge via the modern (non-deprecated)
@@ -40,7 +43,7 @@ class YanivScoreApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Yaniv Score Tracker',
+      title: kAppStoreName,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

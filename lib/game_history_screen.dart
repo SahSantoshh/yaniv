@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:yaniv/ad_consent.dart';
 import 'package:yaniv/ad_helper.dart';
 
 import 'game_history.dart';
@@ -21,7 +22,7 @@ class _GameHistoryScreenState extends State<GameHistoryScreen> {
 
     BannerAd(
       adUnitId: AdHelper.bannerAnchoredId,
-      request: const AdRequest(),
+      request: AdConsent.adRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (ad) {

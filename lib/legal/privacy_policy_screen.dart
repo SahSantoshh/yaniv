@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 
 import 'privacy_policy.dart';
 
-/// Points users to the hosted privacy policy (online only).
+/// Points users to the hosted privacy policy and ad-reporting help (online).
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
 
-  Future<void> _open(BuildContext context) async {
-    final launched = await openPrivacyPolicy();
+  Future<void> _open(
+    BuildContext context,
+    Future<bool> Function() open, {
+    required String failureMessage,
+  }) async {
+    final launched = await open();
     if (!launched && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Could not open the privacy policy. Check your connection and try again.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
 
@@ -64,9 +64,25 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 28),
             FilledButton.icon(
-              onPressed: () => _open(context),
+              onPressed: () => _open(
+                context,
+                openPrivacyPolicy,
+                failureMessage:
+                    'Could not open the privacy policy. Check your connection and try again.',
+              ),
               icon: const Icon(Icons.open_in_browser_rounded),
               label: const Text('View Privacy Policy'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _open(
+                context,
+                openReportInappropriateAd,
+                failureMessage:
+                    'Could not open the report page. Check your connection and try again.',
+              ),
+              icon: const Icon(Icons.flag_outlined),
+              label: const Text('Report an inappropriate ad'),
             ),
             const SizedBox(height: 16),
             Text(
