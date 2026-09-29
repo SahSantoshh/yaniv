@@ -44,6 +44,15 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /android/key.properties
+*.jks
+*.keystore
+*.p8
+*.p12
+*.pem
+.env
+.env.*
 
-# Placeholder Firebase config for local builds — replace with the real file from Firebase console
+# Firebase config (contains API keys) — generate locally via FlutterFire / Firebase console
 android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
