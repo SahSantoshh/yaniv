@@ -36,22 +36,22 @@ dependencies:
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.5.3
   google_mobile_ads: ^9.1.0
-  firebase_core: 4.14.0
+  firebase_core: 4.15.0
   firebase_crashlytics: ^5.4.0
   qr_flutter: ^4.1.0
-  mobile_scanner: 7.4.1
+  mobile_scanner: 7.4.2
   permission_handler: ^13.0.2
   url_launcher: ^6.3.2
 
 # Several late-2026 plugin releases on pub.dev omit native Sources/ (CocoaPods
-# then creates empty aggregate targets → "Module X not found"). Pin last good.
+# then creates empty aggregate targets → "Module X not found"). See docs/ios-spm.md.
 dependency_overrides:
-  firebase_core: 4.14.0
-  mobile_scanner: 7.4.1
-  permission_handler_apple: 9.6.1
-  shared_preferences_foundation: 2.5.6
-  url_launcher_ios: 6.4.1
-  webview_flutter_wkwebview: 3.26.0
+  firebase_core: 4.15.0
+  mobile_scanner: 7.4.2
+  permission_handler_apple: 9.6.2
+  shared_preferences_foundation: 2.5.7
+  url_launcher_ios: 6.4.2
+  webview_flutter_wkwebview: 3.26.1
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4
