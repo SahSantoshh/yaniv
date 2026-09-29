@@ -7,6 +7,7 @@ import 'game_share/scan_game_qr_screen.dart';
 
 import 'game_history_screen.dart';
 import 'game_screen.dart';
+import 'legal/privacy_policy_screen.dart';
 import 'rule_examples_screen.dart';
 import 'scoring_rules.dart';
 
@@ -382,11 +383,24 @@ class SetupScreenState extends State<SetupScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.history_rounded),
+                tooltip: 'Game history',
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const GameHistoryScreen(),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.privacy_tip_outlined),
+                tooltip: 'Privacy Policy',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PrivacyPolicyScreen(),
                     ),
                   );
                 },
