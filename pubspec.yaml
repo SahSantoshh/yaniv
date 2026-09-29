@@ -36,12 +36,22 @@ dependencies:
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.5.3
   google_mobile_ads: ^9.1.0
-  firebase_core: 4.15.0
+  # Pin below broken SPM-only pub.dev releases that omit CocoaPods Sources/
+  # (see docs/ios-spm.md). Bump once fixed releases ship.
+  firebase_core: 4.14.0
   firebase_crashlytics: ^5.4.0
   qr_flutter: ^4.1.0
-  mobile_scanner: 7.4.2
+  mobile_scanner: 7.4.1
   permission_handler: ^13.0.2
   url_launcher: ^6.3.2
+
+# Transitive plugins that published empty native trees on pub.dev.
+# Without these, iOS fails with Module '…' not found (e.g. webview for GMA).
+dependency_overrides:
+  permission_handler_apple: 9.6.1
+  shared_preferences_foundation: 2.5.6
+  url_launcher_ios: 6.4.1
+  webview_flutter_wkwebview: 3.26.0
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4
