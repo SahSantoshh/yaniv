@@ -9,12 +9,15 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:yaniv/ad_consent.dart';
 import 'package:yaniv/ad_helper.dart';
 import 'package:yaniv/app_names.dart';
+import 'package:yaniv/firebase_options.dart';
 import 'package:yaniv/setup_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
     kReleaseMode,
   );
