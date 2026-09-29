@@ -5,8 +5,9 @@ Copy-paste ready fields for App Store Connect. Keep metadata accurate (Guideline
 **Version in app:** `1.4.0` (build `7`) — update What’s New when you bump.
 
 **Privacy Policy URL:** https://sahsantoshh.com/legal/yaniv/privacy/  
-**Support URL:** use a page on your site (recommended) or a `mailto:`-friendly support page that shows `sahsantoshh@gmail.com`  
-**Marketing URL (optional):** https://sahsantoshh.com/ (or your Yaniv project page if you have one)
+**Support URL:** https://sahsantoshh.com/legal/yaniv/privacy/  
+(Apple requires an https Support URL; `mailto:` is not accepted. Support is email-only — the privacy page already lists `sahsantoshh@gmail.com`. In-app: Privacy → tap the email.)  
+**Marketing URL (optional):** https://sahsantoshh.com/
 
 Related: [app-store-review-notes.md](./app-store-review-notes.md) (Notes for Review).
 
@@ -79,8 +80,47 @@ Suggested outcomes for this app:
 - **No** unrestricted web content, user-generated social chat, or gambling for real money
 - **Yes** — infrequent/mild competitive scorekeeping for a card game
 - **Contains ads** (AdMob) — age rating may rise based on ad content; do not claim 4+ if ads can show higher-rated creatives
+- **No** Kids Category
 
 Practical target: **12+** is often safest with third-party ads; confirm after the age questionnaire.
+
+### Age questionnaire quick answers (verify in Connect)
+
+| Topic | Suggested answer |
+|---|---|
+| Contests / score competition | Infrequent / mild (local scorekeeping) |
+| Gambling / contests for money | None |
+| Unrestricted web access | No (in-app links only to policy/support/Google report) |
+| User-generated content / social | No |
+| Ads | Yes — third-party (AdMob) |
+| Medical / alcohol / drugs / violence | None intended by the app itself (ad creatives vary) |
+
+---
+
+## App Privacy nutrition labels (Connect)
+
+Fill **App Privacy** to match the binary and hosted policy:
+
+### Data Used to Track You
+
+| Data type | Used for | Notes |
+|---|---|---|
+| Device ID | Third-Party Advertising | Only when user authorizes ATT; otherwise do not claim tracking for IDFA |
+
+### Data Linked to You (typical for AdMob / Crashlytics)
+
+Declare as **not linked** / diagnostics as appropriate if you do not create user accounts. Common set:
+
+| Data type | Purpose | Tracking? |
+|---|---|---|
+| Device ID | Third-Party Advertising | Yes if ATT authorized |
+| Advertising Data / Product Interaction (ads) | Third-Party Advertising | Per AdMob |
+| Crash Data | App Functionality | No |
+| Diagnostics / Performance Data | App Functionality | No (Crashlytics) |
+
+**Do not** claim collection of Contact Info, Name, or Health for gameplay — player names stay on device only.
+
+Re-check when Google’s privacy manifests or AdMob disclosures change.
 
 ---
 
@@ -217,11 +257,13 @@ Ship **English (U.S.)** first. Add more locales later with translated descriptio
 ## Checklist before Submit
 
 - [ ] Name / subtitle / description / keywords pasted
-- [ ] Privacy Policy URL set
-- [ ] Support URL live
-- [ ] Age rating questionnaire completed (ads disclosed)
-- [ ] App Privacy nutrition labels filled (see review notes)
-- [ ] Screenshots show real gameplay
-- [ ] Notes for Review pasted
+- [ ] Privacy Policy URL set → https://sahsantoshh.com/legal/yaniv/privacy/
+- [ ] Support URL set → same as Privacy Policy URL (email support; Apple needs https)
+- [ ] Age rating questionnaire completed (ads disclosed; ~12+)
+- [ ] App Privacy nutrition labels filled (Advertising + Crash/Diagnostics; ATT tracking)
+- [ ] Export compliance answered (HTTPS only / standard encryption exemption)
+- [ ] Screenshots show real gameplay (setup, scoreboard, rules; optional QR)
+- [ ] Notes for Review pasted from [app-store-review-notes.md](./app-store-review-notes.md)
 - [ ] Not in Kids Category
 - [ ] Pricing: Free (ads)
+- [ ] Release AdMob app ID + unit IDs verified (not Google test IDs)

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:yaniv/ad_consent.dart';
 
 class AdHelper {
   // --- TEST IDS (Official Google) ---
@@ -39,10 +40,13 @@ class AdHelper {
   static const bool showAdsInDebug = false;
 
   /// Widget tests and desktop hosts are neither Android nor iOS.
-  static bool get supportsAds => adsEnabled(
-    isMobile: Platform.isAndroid || Platform.isIOS,
-    isRelease: kReleaseMode,
-  );
+  /// Also requires UMP/ATT preparation to have allowed requesting ads.
+  static bool get supportsAds =>
+      adsEnabled(
+        isMobile: Platform.isAndroid || Platform.isIOS,
+        isRelease: kReleaseMode,
+      ) &&
+      AdConsent.canRequestAds;
 
   static bool adsEnabled({required bool isMobile, required bool isRelease}) {
     if (!isMobile) return false;

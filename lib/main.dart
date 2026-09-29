@@ -29,8 +29,10 @@ Future<void> main() async {
   };
 
   if (AdHelper.supportsAds) {
-    await AdConsent.prepareForAds();
-    await MobileAds.instance.initialize();
+    final canRequestAds = await AdConsent.prepareForAds();
+    if (canRequestAds) {
+      await MobileAds.instance.initialize();
+    }
   }
 
   // Let the Flutter engine manage edge-to-edge via the modern (non-deprecated)

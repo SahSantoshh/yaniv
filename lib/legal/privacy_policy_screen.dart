@@ -1,10 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:yaniv/ad_consent.dart';
 
 import 'privacy_policy.dart';
 
 /// Points users to the hosted privacy policy and ad-reporting help (online).
-class PrivacyPolicyScreen extends StatelessWidget {
+class PrivacyPolicyScreen extends StatefulWidget {
   const PrivacyPolicyScreen({super.key});
+
+  @override
+  State<PrivacyPolicyScreen> createState() => _PrivacyPolicyScreenState();
+}
+
+class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
+  bool _privacyOptionsRequired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrivacyOptionsRequirement();
+  }
+
+  Future<void> _loadPrivacyOptionsRequirement() async {
+    try {
+      final required = await AdConsent.privacyOptionsRequired();
+      if (mounted) setState(() => _privacyOptionsRequired = required);
+    } catch (_) {
+      // Ads / UMP unavailable (tests, desktop) — hide the entry point.
+    }
+  }
 
   Future<void> _open(
     BuildContext context,
@@ -19,6 +42,15 @@ class PrivacyPolicyScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _openAdPrivacyOptions(BuildContext context) async {
+    final error = await AdConsent.showPrivacyOptions();
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open ad privacy options.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -27,7 +59,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(title: const Text('PRIVACY POLICY')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -84,6 +116,14 @@ class PrivacyPolicyScreen extends StatelessWidget {
               icon: const Icon(Icons.flag_outlined),
               label: const Text('Report an inappropriate ad'),
             ),
+            if (_privacyOptionsRequired) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _openAdPrivacyOptions(context),
+                icon: const Icon(Icons.ads_click_outlined),
+                label: const Text('Ad privacy options'),
+              ),
+            ],
             const SizedBox(height: 16),
             Wrap(
               alignment: WrapAlignment.center,

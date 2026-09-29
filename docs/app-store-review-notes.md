@@ -16,7 +16,10 @@ Also reachable in-app: setup screen → privacy shield icon → View Privacy Pol
 
 ## Support / contact
 
-sahsantoshh@gmail.com
+Support is **email only**: sahsantoshh@gmail.com  
+
+App Store Connect still requires an https **Support URL** — use the privacy policy page (it already shows the contact email):  
+https://sahsantoshh.com/legal/yaniv/privacy/
 
 ## No account
 
@@ -25,14 +28,19 @@ The app does not require sign-in. All scoring works offline with local storage.
 ## Advertising & tracking
 
 - The app shows Google AdMob banner and interstitial ads.
-- On iOS, App Tracking Transparency is requested before ads initialize.
-- If the user denies tracking, ads still load as non-personalized (`nonPersonalizedAds`).
+- On iOS, App Tracking Transparency is requested before ads initialize (after any required UMP privacy message).
+- If the user denies tracking, ads still load as non-personalized (`nonPersonalizedAds`) when advertising is allowed.
+- In regions that require it (e.g. EEA/UK), Google’s User Messaging Platform may show a consent form before ads. Users can reopen ad privacy options from the in-app Privacy screen when required.
 - Users can report inappropriate ads from the Privacy screen → “Report an inappropriate ad” (opens Google’s report-an-ad help), or via the AdChoices overlay on ads.
 - Gameplay interstitials are limited (about every 3 rounds with a cooldown), plus natural breaks at match start/end.
 
 ## Crash reporting
 
 Firebase Crashlytics is enabled in release builds only.
+
+## Encryption / export compliance
+
+The app uses only standard HTTPS encryption (no custom/proprietary crypto). Answer the App Store Connect export questionnaire accordingly (standard exemption).
 
 ## Camera / QR game share
 
@@ -54,6 +62,8 @@ Declare at least:
 
 - **Advertising Data** / Device ID — used for Third-Party Advertising (AdMob); tracking only if the user authorizes ATT
 - **Crash Data** / Diagnostics — used for App Functionality (Crashlytics)
+
+See the detailed table in [app-store-listing.md](./app-store-listing.md#app-privacy-nutrition-labels-connect).
 
 Do **not** place the app in the Kids Category (third-party ads).
 
