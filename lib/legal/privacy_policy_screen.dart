@@ -85,12 +85,40 @@ class PrivacyPolicyScreen extends StatelessWidget {
               label: const Text('Report an inappropriate ad'),
             ),
             const SizedBox(height: 16),
-            Text(
-              'Questions: $kPrivacyPolicyContactEmail',
-              textAlign: TextAlign.center,
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  'Questions: ',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: colorScheme.primary,
+                  ),
+                  onPressed: () => _open(
+                    context,
+                    openPrivacyPolicyContactEmail,
+                    failureMessage:
+                        'Could not open your email app. Write to $kPrivacyPolicyContactEmail.',
+                  ),
+                  child: Text(
+                    kPrivacyPolicyContactEmail,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.primary,
+                      decoration: TextDecoration.underline,
+                      decorationColor: colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

@@ -298,60 +298,41 @@ class SetupScreenState extends State<SetupScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      behavior: HitTestBehavior.translucent,
+      child: Scaffold(
       backgroundColor: colorScheme.surface,
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: ColoredBox(
-          color: Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton(
-                  onPressed: _startGame,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(0),
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+      resizeToAvoidBottomInset: true,
+      bottomNavigationBar: keyboardOpen
+          ? null
+          : SafeArea(
+              top: false,
+              child: ColoredBox(
+                color: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        "START NEW MATCH",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
+                      _buildStartMatchButton(colorScheme),
+                      if (_bannerAd != null) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: _bannerAd!.size.width.toDouble(),
+                          height: _bannerAd!.size.height.toDouble(),
+                          child: AdWidget(ad: _bannerAd!),
                         ),
-                      ),
-                      SizedBox(width: 12),
-                      Icon(Icons.play_arrow_rounded, size: 24),
+                      ],
                     ],
                   ),
                 ),
-                if (_bannerAd != null) ...[
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: _bannerAd!.size.width.toDouble(),
-                    height: _bannerAd!.size.height.toDouble(),
-                    child: AdWidget(ad: _bannerAd!),
-                  ),
-                ],
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
       body: CustomScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
           SliverAppBar.large(
             backgroundColor: colorScheme.surface,
@@ -524,7 +505,7 @@ class SetupScreenState extends State<SetupScreen> {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
+            padding: EdgeInsets.fromLTRB(24, 12, 24, keyboardOpen ? 24 : 40),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 InkWell(
@@ -795,9 +776,46 @@ class SetupScreenState extends State<SetupScreen> {
                     ],
                   ),
                 ),
+                if (keyboardOpen) ...[
+                  const SizedBox(height: 24),
+                  _buildStartMatchButton(colorScheme),
+                  SizedBox(height: MediaQuery.paddingOf(context).bottom + 16),
+                ],
               ]),
             ),
           ),
+        ],
+      ),
+    ),
+    );
+  }
+
+  Widget _buildStartMatchButton(ColorScheme colorScheme) {
+    return ElevatedButton(
+      onPressed: _startGame,
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size.fromHeight(0),
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        backgroundColor: colorScheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "START NEW MATCH",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+            ),
+          ),
+          SizedBox(width: 12),
+          Icon(Icons.play_arrow_rounded, size: 24),
         ],
       ),
     );

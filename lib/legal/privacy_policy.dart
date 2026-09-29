@@ -18,3 +18,14 @@ Future<bool> openPrivacyPolicy() => _openUrl(kPrivacyPolicyUrl);
 
 /// Opens Google’s “Report an ad” help page.
 Future<bool> openReportInappropriateAd() => _openUrl(kReportInappropriateAdUrl);
+
+/// Opens the device mail app to email privacy questions.
+Future<bool> openPrivacyPolicyContactEmail() {
+  return launchUrl(
+    Uri(
+      scheme: 'mailto',
+      path: kPrivacyPolicyContactEmail,
+      queryParameters: {'subject': 'Yaniv privacy question'},
+    ),
+  );
+}
