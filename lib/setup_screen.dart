@@ -1,9 +1,13 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:yaniv/ad_consent.dart';
 import 'package:yaniv/ad_helper.dart';
 import 'package:yaniv/app_names.dart';
 import 'package:yaniv/player.dart';
+
 import 'game_share/game_snapshot.dart';
 import 'game_share/scan_game_qr_screen.dart';
 
@@ -254,7 +258,17 @@ class SetupScreenState extends State<SetupScreen> {
     _addPlayerField(); // This one will get focus
     _addPlayerField(requestFocus: false);
 
-    if (!AdHelper.supportsAds) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prepareAdsThenLoad();
+    });
+  }
+
+  Future<void> _prepareAdsThenLoad() async {
+    final ready = await AdHelper.prepareAdsIfNeeded(
+      isMobile: Platform.isAndroid || Platform.isIOS,
+      isRelease: kReleaseMode,
+    );
+    if (!mounted || !ready) return;
 
     BannerAd(
       adUnitId: AdHelper.bannerAnchoredId,
@@ -304,503 +318,507 @@ class SetupScreenState extends State<SetupScreen> {
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       behavior: HitTestBehavior.translucent,
       child: Scaffold(
-      backgroundColor: colorScheme.surface,
-      resizeToAvoidBottomInset: true,
-      bottomNavigationBar: keyboardOpen
-          ? null
-          : SafeArea(
-              top: false,
-              child: ColoredBox(
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildStartMatchButton(colorScheme),
-                      if (_bannerAd != null) ...[
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: _bannerAd!.size.width.toDouble(),
-                          height: _bannerAd!.size.height.toDouble(),
-                          child: AdWidget(ad: _bannerAd!),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ),
-      body: CustomScrollView(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        slivers: [
-          SliverAppBar.large(
-            backgroundColor: colorScheme.surface,
-            surfaceTintColor: colorScheme.surface,
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFF7B3FE4), Color(0xFF5015B3)],
-                    ),
-                  ),
-                  child: Image.asset(
-                    'assets/icons/yaniv_transparent.png',
-                    height: 48,
-                    width: 48,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                const Text(kAppBrandName),
-              ],
-            ),
-            centerTitle: true,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.qr_code_scanner_rounded),
-                tooltip: "Join via QR",
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ScanGameQrScreen(
-                        onImported: (snapshot) {
-                          Navigator.pop(context);
-                          _navigateToImportedGame(snapshot);
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.history_rounded),
-                tooltip: 'Game history',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const GameHistoryScreen(),
-                    ),
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.privacy_tip_outlined),
-                tooltip: 'Privacy Policy',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PrivacyPolicyScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  _buildSectionHeader(
-                    context,
-                    "PLAYERS",
-                    Icons.people_alt_rounded,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            sliver: SliverReorderableList(
-              itemCount: _playerControllers.length,
-              onReorderItem: _onReorder,
-              itemBuilder: (context, i) {
-                return ReorderableDelayedDragStartListener(
-                  key: ValueKey(_playerControllers[i]),
-                  index: i,
+        backgroundColor: colorScheme.surface,
+        resizeToAvoidBottomInset: true,
+        bottomNavigationBar: keyboardOpen
+            ? null
+            : SafeArea(
+                top: false,
+                child: ColoredBox(
+                  color: Colors.white,
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: colorScheme.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: colorScheme.primary.withValues(alpha: 0.08),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 16),
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary.withValues(
-                                  alpha: 0.08,
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                "${i + 1}",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: _playerControllers[i],
-                                focusNode: _playerFocusNodes[i],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                                textInputAction:
-                                    i == _playerControllers.length - 1
-                                    ? TextInputAction.done
-                                    : TextInputAction.next,
-                                onSubmitted: (_) {
-                                  if (i < _playerControllers.length - 1) {
-                                    _playerFocusNodes[i + 1].requestFocus();
-                                  }
-                                },
-                                decoration: const InputDecoration(
-                                  hintText: "Enter name...",
-                                  fillColor: Colors.transparent,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 18,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (_playerControllers.length > 2)
-                              IconButton(
-                                onPressed: () => _removePlayerField(i),
-                                icon: const Icon(
-                                  Icons.remove_circle_outline_rounded,
-                                  size: 22,
-                                  color: Colors.redAccent,
-                                ),
-                              ),
-                            const Icon(
-                              Icons.drag_indicator_rounded,
-                              color: Colors.black12,
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(24, 12, 24, keyboardOpen ? 24 : 40),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                InkWell(
-                  onTap: _addPlayerField,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.3),
-                        style: BorderStyle.solid,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.add_circle_outline_rounded,
-                          size: 20,
-                          color: colorScheme.primary,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          "ADD NEW PLAYER",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 48),
-                _buildSectionHeader(
-                  context,
-                  "MATCH SETTINGS",
-                  Icons.tune_rounded,
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: colorScheme.primary.withValues(alpha: 0.1),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.primary.withValues(alpha: 0.03),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "TARGET SCORE",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 11,
-                          color: colorScheme.primary.withValues(alpha: 0.5),
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _endScoreController,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 42,
-                                letterSpacing: -2,
-                              ),
-                              onChanged: (val) => setState(() {}),
-                              decoration: const InputDecoration(
-                                fillColor: Colors.transparent,
-                                contentPadding: EdgeInsets.zero,
-                                suffixText: "PTS",
-                                suffixStyle: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black26,
-                                ),
-                              ),
-                            ),
+                        _buildStartMatchButton(colorScheme),
+                        if (_bannerAd != null) ...[
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: _bannerAd!.size.width.toDouble(),
+                            height: _bannerAd!.size.height.toDouble(),
+                            child: AdWidget(ad: _bannerAd!),
                           ),
                         ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+        body: CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            SliverAppBar.large(
+              backgroundColor: colorScheme.surface,
+              surfaceTintColor: colorScheme.surface,
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFF7B3FE4), Color(0xFF5015B3)],
                       ),
-                      const SizedBox(height: 20),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: ['100', '124', '150', '200'].map((val) {
-                            final isSelected = _endScoreController.text == val;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(val),
-                                selected: isSelected,
-                                onSelected: (selected) {
-                                  if (selected) {
-                                    setState(
-                                      () => _endScoreController.text = val,
-                                    );
-                                  }
-                                },
-                                labelStyle: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : colorScheme.primary,
-                                ),
-                                selectedColor: colorScheme.primary,
-                                backgroundColor: colorScheme.primary.withValues(
-                                  alpha: 0.05,
-                                ),
-                                side: BorderSide.none,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                showCheckmark: false,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildFancyInput(
-                        context,
-                        "Call Score",
-                        "Highest hand that can call Yaniv",
-                        Icons.front_hand_rounded,
-                        _callScoreController,
-                      ),
-                      const Divider(height: 48),
-                      Text(
-                        "ACTIVE RULES",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 11,
-                          color: colorScheme.primary.withValues(alpha: 0.5),
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RuleExamplesScreen(),
-                              ),
-                            );
+                    ),
+                    child: Image.asset(
+                      'assets/icons/yaniv_transparent.png',
+                      height: 48,
+                      width: 48,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(kAppBrandName),
+                ],
+              ),
+              centerTitle: true,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.qr_code_scanner_rounded),
+                  tooltip: "Join via QR",
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ScanGameQrScreen(
+                          onImported: (snapshot) {
+                            Navigator.pop(context);
+                            _navigateToImportedGame(snapshot);
                           },
-                          child: const Text(
-                            'SEE EXAMPLES',
-                            style: TextStyle(fontWeight: FontWeight.w900),
-                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      _buildFancySwitch(
-                        context,
-                        "Halving Logic",
-                        _getHalvingMessage(),
-                        Icons.auto_awesome_rounded,
-                        halvingRuleEnabled,
-                        (val) => setState(() => halvingRuleEnabled = val),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.history_rounded),
+                  tooltip: 'Game history',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const GameHistoryScreen(),
                       ),
-                      const SizedBox(height: 16),
-                      _buildFancySwitch(
-                        context,
-                        "Winner Bonus",
-                        "Round winner halves their previous score",
-                        Icons.workspace_premium_rounded,
-                        winnerHalfPreviousScoreRule,
-                        (val) =>
-                            setState(() => winnerHalfPreviousScoreRule = val),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.privacy_tip_outlined),
+                  tooltip: 'Privacy Policy',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PrivacyPolicyScreen(),
                       ),
-                      const SizedBox(height: 16),
-                      _buildFancyInput(
-                        context,
-                        "Joining Penalty",
-                        "Penalty added to the current highest score for new players",
-                        Icons.person_add_rounded,
-                        _newPlayerJoinPenaltyController,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildFancySwitch(
-                        context,
-                        "Asaf Penalties",
-                        "Penalty points for failed Yaniv calls",
-                        Icons.gavel_rounded,
-                        asafPenaltyRuleEnabled,
-                        (val) => setState(() => asafPenaltyRuleEnabled = val),
-                      ),
-                      const SizedBox(height: 16),
-                      if (asafPenaltyRuleEnabled) ...[
-                        const SizedBox(height: 24),
-                        Container(
-                          padding: const EdgeInsets.all(20),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    _buildSectionHeader(
+                      context,
+                      "PLAYERS",
+                      Icons.people_alt_rounded,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              sliver: SliverReorderableList(
+                itemCount: _playerControllers.length,
+                onReorderItem: _onReorder,
+                itemBuilder: (context, i) {
+                  return ReorderableDelayedDragStartListener(
+                    key: ValueKey(_playerControllers[i]),
+                    index: i,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: Container(
                           decoration: BoxDecoration(
-                            color: colorScheme.primary.withValues(alpha: 0.03),
+                            color: colorScheme.surface,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: colorScheme.primary.withValues(
-                                alpha: 0.05,
+                                alpha: 0.08,
                               ),
                             ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildFancySwitch(
-                                context,
-                                "Tie Penalty",
-                                "Penalize even on an exact tie",
-                                Icons.equalizer_rounded,
-                                penaltyOnTieRuleEnabled,
-                                (val) => setState(
-                                  () => penaltyOnTieRuleEnabled = val,
-                                ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
-                              const SizedBox(height: 20),
-                              TextField(
-                                controller: _penaltyScoreController,
-                                enabled: penaltyOnTieRuleEnabled,
-                                keyboardType: TextInputType.number,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 16),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                  shape: BoxShape.circle,
                                 ),
-                                decoration: InputDecoration(
-                                  labelText: "Penalty Points",
-                                  fillColor: Colors.white,
-                                  prefixIcon: Icon(
-                                    Icons.warning_amber_rounded,
-                                    size: 20,
+                                child: Text(
+                                  "${i + 1}",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
                                     color: colorScheme.primary,
                                   ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: colorScheme.primary.withValues(
-                                        alpha: 0.1,
-                                      ),
+                                ),
+                              ),
+                              Expanded(
+                                child: TextField(
+                                  controller: _playerControllers[i],
+                                  focusNode: _playerFocusNodes[i],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                  textInputAction:
+                                      i == _playerControllers.length - 1
+                                      ? TextInputAction.done
+                                      : TextInputAction.next,
+                                  onSubmitted: (_) {
+                                    if (i < _playerControllers.length - 1) {
+                                      _playerFocusNodes[i + 1].requestFocus();
+                                    }
+                                  },
+                                  decoration: const InputDecoration(
+                                    hintText: "Enter name...",
+                                    fillColor: Colors.transparent,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 18,
                                     ),
                                   ),
                                 ),
                               ),
+                              if (_playerControllers.length > 2)
+                                IconButton(
+                                  onPressed: () => _removePlayerField(i),
+                                  icon: const Icon(
+                                    Icons.remove_circle_outline_rounded,
+                                    size: 22,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                              const Icon(
+                                Icons.drag_indicator_rounded,
+                                color: Colors.black12,
+                              ),
+                              const SizedBox(width: 8),
                             ],
                           ),
                         ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (keyboardOpen) ...[
-                  const SizedBox(height: 24),
-                  _buildStartMatchButton(colorScheme),
-                  SizedBox(height: MediaQuery.paddingOf(context).bottom + 16),
-                ],
-              ]),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(24, 12, 24, keyboardOpen ? 24 : 40),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  InkWell(
+                    onTap: _addPlayerField,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: colorScheme.primary.withValues(alpha: 0.3),
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_circle_outline_rounded,
+                            size: 20,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            "ADD NEW PLAYER",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  _buildSectionHeader(
+                    context,
+                    "MATCH SETTINGS",
+                    Icons.tune_rounded,
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: colorScheme.primary.withValues(alpha: 0.1),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.primary.withValues(alpha: 0.03),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "TARGET SCORE",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                            color: colorScheme.primary.withValues(alpha: 0.5),
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _endScoreController,
+                                keyboardType: TextInputType.number,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 42,
+                                  letterSpacing: -2,
+                                ),
+                                onChanged: (val) => setState(() {}),
+                                decoration: const InputDecoration(
+                                  fillColor: Colors.transparent,
+                                  contentPadding: EdgeInsets.zero,
+                                  suffixText: "PTS",
+                                  suffixStyle: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black26,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: ['100', '124', '150', '200'].map((val) {
+                              final isSelected =
+                                  _endScoreController.text == val;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ChoiceChip(
+                                  label: Text(val),
+                                  selected: isSelected,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(
+                                        () => _endScoreController.text = val,
+                                      );
+                                    }
+                                  },
+                                  labelStyle: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : colorScheme.primary,
+                                  ),
+                                  selectedColor: colorScheme.primary,
+                                  backgroundColor: colorScheme.primary
+                                      .withValues(alpha: 0.05),
+                                  side: BorderSide.none,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  showCheckmark: false,
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        _buildFancyInput(
+                          context,
+                          "Call Score",
+                          "Highest hand that can call Yaniv",
+                          Icons.front_hand_rounded,
+                          _callScoreController,
+                        ),
+                        const Divider(height: 48),
+                        Text(
+                          "ACTIVE RULES",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                            color: colorScheme.primary.withValues(alpha: 0.5),
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const RuleExamplesScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'SEE EXAMPLES',
+                              style: TextStyle(fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildFancySwitch(
+                          context,
+                          "Halving Logic",
+                          _getHalvingMessage(),
+                          Icons.auto_awesome_rounded,
+                          halvingRuleEnabled,
+                          (val) => setState(() => halvingRuleEnabled = val),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildFancySwitch(
+                          context,
+                          "Winner Bonus",
+                          "Round winner halves their previous score",
+                          Icons.workspace_premium_rounded,
+                          winnerHalfPreviousScoreRule,
+                          (val) =>
+                              setState(() => winnerHalfPreviousScoreRule = val),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildFancyInput(
+                          context,
+                          "Joining Penalty",
+                          "Penalty added to the current highest score for new players",
+                          Icons.person_add_rounded,
+                          _newPlayerJoinPenaltyController,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildFancySwitch(
+                          context,
+                          "Asaf Penalties",
+                          "Penalty points for failed Yaniv calls",
+                          Icons.gavel_rounded,
+                          asafPenaltyRuleEnabled,
+                          (val) => setState(() => asafPenaltyRuleEnabled = val),
+                        ),
+                        const SizedBox(height: 16),
+                        if (asafPenaltyRuleEnabled) ...[
+                          const SizedBox(height: 24),
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary.withValues(
+                                alpha: 0.03,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.05,
+                                ),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFancySwitch(
+                                  context,
+                                  "Tie Penalty",
+                                  "Penalize even on an exact tie",
+                                  Icons.equalizer_rounded,
+                                  penaltyOnTieRuleEnabled,
+                                  (val) => setState(
+                                    () => penaltyOnTieRuleEnabled = val,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                TextField(
+                                  controller: _penaltyScoreController,
+                                  enabled: penaltyOnTieRuleEnabled,
+                                  keyboardType: TextInputType.number,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: "Penalty Points",
+                                    fillColor: Colors.white,
+                                    prefixIcon: Icon(
+                                      Icons.warning_amber_rounded,
+                                      size: 20,
+                                      color: colorScheme.primary,
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: colorScheme.primary.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (keyboardOpen) ...[
+                    const SizedBox(height: 24),
+                    _buildStartMatchButton(colorScheme),
+                    SizedBox(height: MediaQuery.paddingOf(context).bottom + 16),
+                  ],
+                ]),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -813,9 +831,7 @@ class SetupScreenState extends State<SetupScreen> {
         backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.center,

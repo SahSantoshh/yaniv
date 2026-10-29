@@ -22,7 +22,7 @@
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" image="LaunchBackground" translatesAutoresizingMaskIntoConstraints="NO" id="bg-splash-1">
                                 <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                             </imageView>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="SplashLogo" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
                                 <rect key="frame" x="96.666666666666686" y="326" width="200" height="200"/>
                             </imageView>
                         </subviews>
@@ -46,6 +46,6 @@
     </scenes>
     <resources>
         <image name="LaunchBackground" width="8" height="256"/>
-        <image name="LaunchImage" width="512" height="512"/>
+        <image name="SplashLogo" width="512" height="512"/>
     </resources>
 </document>

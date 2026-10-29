@@ -11,9 +11,14 @@ const String kAppStoreSupportUrl = kPrivacyPolicyUrl;
 
 const String kPrivacyPolicyContactEmail = 'sahsantoshh@gmail.com';
 
-/// Google’s form for reporting inappropriate ads (Guideline 2.5.18).
-const String kReportInappropriateAdUrl =
-    'https://support.google.com/ads/answer/2662922';
+/// Mail link so a person can report an inappropriate ad to the developer.
+Uri inappropriateAdReportUri() {
+  return Uri(
+    scheme: 'mailto',
+    path: kPrivacyPolicyContactEmail,
+    queryParameters: {'subject': 'Inappropriate ad report'},
+  );
+}
 
 Future<bool> _openUrl(String url) {
   return launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
@@ -22,8 +27,10 @@ Future<bool> _openUrl(String url) {
 /// Opens the hosted privacy policy in an external browser.
 Future<bool> openPrivacyPolicy() => _openUrl(kPrivacyPolicyUrl);
 
-/// Opens Google’s “Report an ad” help page.
-Future<bool> openReportInappropriateAd() => _openUrl(kReportInappropriateAdUrl);
+/// Opens the mail app so the person can report an inappropriate ad.
+Future<bool> openReportInappropriateAd() {
+  return launchUrl(inappropriateAdReportUri());
+}
 
 /// Opens the device mail app to email support / privacy questions.
 Future<bool> openPrivacyPolicyContactEmail() {

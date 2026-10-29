@@ -1,5 +1,7 @@
 # App Store Review Notes (paste into App Store Connect → Notes)
 
+**Version:** 2.0.0 (build 9)
+
 Listing copy (name, description, keywords, screenshots): see [app-store-listing.md](./app-store-listing.md).
 
 ## Names
@@ -27,12 +29,20 @@ The app does not require sign-in. All scoring works offline with local storage.
 
 ## Advertising & tracking
 
-- The app shows Google AdMob banner and interstitial ads.
-- On iOS, App Tracking Transparency is requested before ads initialize (after any required UMP privacy message).
-- If the user denies tracking, ads still load as non-personalized (`nonPersonalizedAds`) when advertising is allowed.
-- In regions that require it (e.g. EEA/UK), Google’s User Messaging Platform may show a consent form before ads. Users can reopen ad privacy options from the in-app Privacy screen when required.
-- Users can report inappropriate ads from the Privacy screen → “Report an inappropriate ad” (opens Google’s report-an-ad help), or via the AdChoices overlay on ads.
-- Gameplay interstitials are limited (about every 3 rounds with a cooldown), plus natural breaks at match start/end.
+Release builds show Google AdMob banner and interstitial ads. Debug builds do not, unless a developer flag is turned on. TestFlight and App Store builds are release builds, so ads should appear.
+
+After the setup screen is on screen, the app does this in order:
+
+1. If the region requires it (for example EEA/UK), Google’s User Messaging Platform may show a consent form.
+2. On iPhone, App Tracking Transparency is requested. Allowing it permits personalized ads. Denying it still allows scorekeeping, and ads load as non-personalized when advertising is allowed.
+3. Ad requests are capped at teen (`MaxAdContentRating.t`). Mature ads are not requested.
+4. The ads SDK starts only when consent allows an ad request. If consent refuses ads, no ad loads. Scorekeeping still works.
+
+Users can reopen ad privacy options from the in-app Privacy screen when Google requires that entry point.
+
+Privacy screen → “Report an inappropriate ad” opens an email to sahsantoshh@gmail.com with the subject “Inappropriate ad report”. The AdChoices overlay on an ad is a separate Google control.
+
+Gameplay interstitials show at most every 3 rounds, and not more often than once every 90 seconds, plus natural breaks at match start and match end.
 
 ## Crash reporting
 
@@ -42,10 +52,16 @@ Firebase Crashlytics is enabled in release builds only.
 
 The app uses only standard HTTPS encryption (no custom/proprietary crypto). Answer the App Store Connect export questionnaire accordingly (standard exemption).
 
+## iPhone and iPad
+
+This build supports iPhone and iPad. Please test setup, scoring, and the QR scan on an iPad.
+
 ## Camera / QR game share
 
-- Camera is optional and used only to scan a game QR shared from another device.
-- QR codes transfer local game state between devices; they do **not** unlock paid features or content (Guideline 3.1.1).
+Sharing is a QR code between two phones. One phone shows the code. The other phone scans it.
+
+- Camera is optional and used only to scan that QR.
+- The code carries local game state. It does not unlock paid features or content (Guideline 3.1.1).
 - Core score tracking works without granting camera access.
 
 ### How to review QR import without a second device

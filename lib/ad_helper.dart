@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:yaniv/ad_consent.dart';
 
 class AdHelper {
@@ -39,14 +40,72 @@ class AdHelper {
   /// Release builds ignore it and always show ads on Android and iOS.
   static const bool showAdsInDebug = false;
 
+  /// Run consent and the tracking prompt even when the answer is still unknown.
+  ///
+  /// Loading an ad is a separate step. [readyToLoadAds] stays false until
+  /// consent allows a request, so preparation must not wait on that flag.
+  static bool shouldPrepareAds({
+    required bool isMobile,
+    required bool isRelease,
+  }) {
+    return adsEnabled(isMobile: isMobile, isRelease: isRelease);
+  }
+
+  /// True only after preparation has allowed an ad request.
+  static bool readyToLoadAds({
+    required bool isMobile,
+    required bool isRelease,
+    required bool canRequestAds,
+  }) {
+    return adsEnabled(isMobile: isMobile, isRelease: isRelease) &&
+        canRequestAds;
+  }
+
+  /// Teen cap so a mature ad is not requested in this general-audience app.
+  static RequestConfiguration adRequestConfiguration() {
+    return RequestConfiguration(maxAdContentRating: MaxAdContentRating.t);
+  }
+
+  /// Gather consent, cap ad content, then start the ads SDK.
+  ///
+  /// Returns true when an ad may be loaded. Call this after the first screen
+  /// is visible so the tracking prompt is not shown over a blank launch.
+  static Future<bool> prepareAdsIfNeeded({
+    required bool isMobile,
+    required bool isRelease,
+    Future<bool> Function()? prepareForAds,
+    Future<void> Function(RequestConfiguration config)? applyConfiguration,
+    Future<void> Function()? initializeAds,
+  }) async {
+    if (!shouldPrepareAds(isMobile: isMobile, isRelease: isRelease)) {
+      return false;
+    }
+
+    final allowed = await (prepareForAds ?? AdConsent.prepareForAds)();
+    if (!allowed) return false;
+
+    final config = adRequestConfiguration();
+    if (applyConfiguration != null) {
+      await applyConfiguration(config);
+    } else {
+      await MobileAds.instance.updateRequestConfiguration(config);
+    }
+
+    if (initializeAds != null) {
+      await initializeAds();
+    } else {
+      await MobileAds.instance.initialize();
+    }
+    return true;
+  }
+
   /// Widget tests and desktop hosts are neither Android nor iOS.
   /// Also requires UMP/ATT preparation to have allowed requesting ads.
-  static bool get supportsAds =>
-      adsEnabled(
-        isMobile: Platform.isAndroid || Platform.isIOS,
-        isRelease: kReleaseMode,
-      ) &&
-      AdConsent.canRequestAds;
+  static bool get supportsAds => readyToLoadAds(
+    isMobile: Platform.isAndroid || Platform.isIOS,
+    isRelease: kReleaseMode,
+    canRequestAds: AdConsent.canRequestAds,
+  );
 
   static bool adsEnabled({required bool isMobile, required bool isRelease}) {
     if (!isMobile) return false;

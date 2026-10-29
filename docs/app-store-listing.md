@@ -2,7 +2,7 @@
 
 Copy-paste ready fields for App Store Connect. Keep metadata accurate (Guideline 2.3).
 
-**Version in app:** `1.4.0` (build `7`) — update What’s New when you bump.
+**Version in app:** `1.4.1` (build `8`) — update What’s New when you bump.
 
 ### App Store Connect record
 
@@ -86,23 +86,26 @@ Answer App Store Connect questionnaires honestly.
 
 Suggested outcomes for this app:
 
-- **No** unrestricted web content, user-generated social chat, or gambling for real money
-- **Yes** — infrequent/mild competitive scorekeeping for a card game
-- **Contains ads** (AdMob) — age rating may rise based on ad content; do not claim 4+ if ads can show higher-rated creatives
+- **None** for contests. This app has no contest. A yes would require official rules that say Apple is not a sponsor.
+- **None** for gambling
+- **None** for simulated gambling
+- **No** unrestricted web content or user-generated social chat
+- **Contains ads** (AdMob). Each ad request asks Google to stay at teen or below (`MaxAdContentRating.t`). Do not claim 4+.
 - **No** Kids Category
 
-Practical target: **12+** is often safest with third-party ads; confirm after the age questionnaire.
+Practical target: **12+**, matching the teen ad cap. Confirm after the age questionnaire.
 
 ### Age questionnaire quick answers (verify in Connect)
 
 | Topic | Suggested answer |
 |---|---|
-| Contests / score competition | Infrequent / mild (local scorekeeping) |
-| Gambling / contests for money | None |
-| Unrestricted web access | No (in-app links only to policy/support/Google report) |
+| Contests | None. This app has no contest. A yes would require official rules that say Apple is not a sponsor. |
+| Gambling | None |
+| Simulated gambling | None |
+| Unrestricted web access | No (in-app link to the privacy policy; ad reports go to email) |
 | User-generated content / social | No |
-| Ads | Yes — third-party (AdMob) |
-| Medical / alcohol / drugs / violence | None intended by the app itself (ad creatives vary) |
+| Ads | Yes — third-party (AdMob), requested at teen or below |
+| Medical / alcohol / drugs / violence | None in the app itself. Ad requests are capped at teen |
 
 ---
 
@@ -138,7 +141,7 @@ Re-check when Google’s privacy manifests or AdMob disclosures change.
 (Optional, up to 170 characters — can change without a new binary.)
 
 ```
-Track Yaniv the easy way: custom rules, Asaf & call scores, live scoreboard, history, and QR handoff between devices.
+Track Yaniv the easy way: custom rules, Asaf & call scores, live scoreboard, history, and QR share between two phones.
 ```
 
 ---
@@ -167,17 +170,17 @@ DURING THE MATCH
 • Add or adjust players as the night goes on
 • End the match when someone crosses the target — lowest total wins
 
-SHARE & CONTINUE
-• Share the current game via QR to another phone
-• Join via QR on setup to continue the same match
-• Game history kept on your device
+SHARE BETWEEN TWO PHONES
+• One phone shows a QR code for the current game
+• The other phone scans that code to continue the same match
+• Game history stays on your device
 
 PRIVACY
 • Player names and scores stay on your device
 • Optional camera only for scanning a game QR
 • Privacy Policy: https://sahsantoshh.com/legal/yaniv/privacy/
 
-The app is free and supported by ads. You can report an inappropriate ad from the in-app Privacy screen.
+The app is free and supported by ads. Ads are requested at a teen rating or below. From the in-app Privacy screen you can email the developer to report an inappropriate ad.
 ```
 
 ---
@@ -187,7 +190,7 @@ The app is free and supported by ads. You can report an inappropriate ad from th
 (Max 100 characters total, comma-separated, **no spaces after commas** preferred. Do not repeat the app name. No competitor trademark stuffing.)
 
 ```
-yaniv,scorekeeper,scoreboard,card game,asaf,halving,score tracker,multiplayer scores,qr share
+yaniv,scorekeeper,scoreboard,card game,asaf,halving,score tracker,qr share
 ```
 
 (Character count: check in Connect; trim from the end if over 100.)
@@ -202,28 +205,25 @@ yaniv,scorekeeper,scoreboard,card game,asaf,halving,score tracker
 
 ## What’s New
 
-For **1.4.0** (adjust if your release notes differ):
+For **1.4.1** (build 8):
 
 ```
-• Privacy Policy in the app, with a link to report inappropriate ads
-• App Tracking Transparency on iOS — personalized ads only if you allow tracking
-• Smoother ad timing during matches (fewer interruptions between rounds)
+• New app icon and launch screen
+• Ads stay at a teen rating or below
+• Report an inappropriate ad by email from the Privacy screen
+• On iPhone, the tracking question appears after the setup screen is open
 • Stability improvements
-```
-
-Generic bugfix–only style (if you prefer):
-
-```
-Bug fixes and improvements for App Store submission.
 ```
 
 ---
 
 ## Screenshots & preview (Guideline 2.3.3)
 
-Show the **app in use**, not only the splash/logo.
+Show the **app in use**, not only the splash/logo. Retake any shot that still shows the previous icon. The current look is the purple setup screen and the new logo.
 
-Suggested set (iPhone 6.7" is usually required; add 6.5"/iPad if you support them):
+The app is built for iPhone and iPad. Test setup, scoring, and the QR scan on an iPad before you submit. iPhone 6.7" screenshots are usually required; include iPad screenshots as well.
+
+Suggested set:
 
 1. **Setup** — players + rule toggles (call score, halving, Asaf)
 2. **Scoreboard mid-game** — several rounds, yellow winner highlight, a halved/strikethrough score if possible
@@ -268,7 +268,9 @@ Ship **English (U.S.)** first. Add more locales later with translated descriptio
 - [ ] Name / subtitle / description / keywords pasted
 - [ ] Privacy Policy URL set → https://sahsantoshh.com/legal/yaniv/privacy/
 - [ ] Support URL set → same as Privacy Policy URL (email support; Apple needs https)
-- [ ] Age rating questionnaire completed (ads disclosed; ~12+)
+- [ ] Age rating: None for contests, gambling, and simulated gambling (ads disclosed; teen cap; 12+)
+- [ ] Keywords do not include “multiplayer”
+- [ ] Tested setup, scoring, and the QR scan on an iPad (the app supports iPhone and iPad)
 - [ ] App Privacy nutrition labels filled (Advertising + Crash/Diagnostics; ATT tracking)
 - [ ] Export compliance answered (HTTPS only / standard encryption exemption)
 - [ ] Screenshots show real gameplay (setup, scoreboard, rules; optional QR)

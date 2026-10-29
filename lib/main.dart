@@ -5,9 +5,6 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:yaniv/ad_consent.dart';
-import 'package:yaniv/ad_helper.dart';
 import 'package:yaniv/app_names.dart';
 import 'package:yaniv/firebase_options.dart';
 import 'package:yaniv/setup_screen.dart';
@@ -15,9 +12,7 @@ import 'package:yaniv/setup_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
     kReleaseMode,
   );
@@ -27,13 +22,6 @@ Future<void> main() async {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true;
   };
-
-  if (AdHelper.supportsAds) {
-    final canRequestAds = await AdConsent.prepareForAds();
-    if (canRequestAds) {
-      await MobileAds.instance.initialize();
-    }
-  }
 
   // Let the Flutter engine manage edge-to-edge via the modern (non-deprecated)
   // platform APIs, rather than setting bar colors directly.

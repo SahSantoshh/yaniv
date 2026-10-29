@@ -36,9 +36,8 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
   }) async {
     final launched = await open();
     if (!launched && context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(failureMessage)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
 
@@ -99,8 +98,7 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
               onPressed: () => _open(
                 context,
                 openPrivacyPolicy,
-                failureMessage:
-                    'Could not open the privacy policy. Check your connection and try again.',
+                failureMessage: 'Could not open the privacy policy. Check your connection and try again.',
               ),
               icon: const Icon(Icons.open_in_browser_rounded),
               label: const Text('View Privacy Policy'),
@@ -111,7 +109,7 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
                 context,
                 openReportInappropriateAd,
                 failureMessage:
-                    'Could not open the report page. Check your connection and try again.',
+                    'Could not open your email app. Write to $kPrivacyPolicyContactEmail.',
               ),
               icon: const Icon(Icons.flag_outlined),
               label: const Text('Report an inappropriate ad'),
