@@ -2,7 +2,7 @@
 
 Copy-paste ready fields for App Store Connect. Keep metadata accurate (Guideline 2.3).
 
-**Version in app:** `1.4.1` (build `8`) — update What’s New when you bump.
+**Version in app:** `2.0.0` (build `9`) — update What’s New when you bump.
 
 ### App Store Connect record
 
@@ -205,7 +205,7 @@ yaniv,scorekeeper,scoreboard,card game,asaf,halving,score tracker
 
 ## What’s New
 
-For **1.4.1** (build 8):
+For **2.0.0** (build 9):
 
 ```
 • New app icon and launch screen
