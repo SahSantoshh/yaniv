@@ -57,7 +57,7 @@ class RoundHistoryList extends StatelessWidget {
               text: parts[2],
               style: baseStyle.copyWith(
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF673AB7),
+                color: const Color(0xFF5015b3),
               ),
             ),
           ],
@@ -201,7 +201,7 @@ class RoundHistoryList extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.all(2),
                               decoration: const BoxDecoration(
-                                color: Color(0xFF673AB7),
+                                color: Color(0xFF5015b3),
                                 shape: BoxShape.circle,
                               ),
                               child: const Text(
@@ -275,7 +275,7 @@ class RoundHistoryList extends StatelessWidget {
                                       ),
                                       decoration: BoxDecoration(
                                         color: const Color(
-                                          0xFF673AB7,
+                                          0xFF5015b3,
                                         ).withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
@@ -284,7 +284,7 @@ class RoundHistoryList extends StatelessWidget {
                                         style: TextStyle(
                                           fontSize: 8,
                                           fontWeight: FontWeight.w900,
-                                          color: Color(0xFF673AB7),
+                                          color: Color(0xFF5015b3),
                                         ),
                                       ),
                                     ),

@@ -1,4 +1,8 @@
 # flutter pub run flutter_launcher_icons
+# yanivlogo2.png is the new 1024 icon. The sized files already installed in
+# android/app/src/main/res and ios/Runner/Assets.xcassets/AppIcon.appiconset
+# are the ones the stores use. Running this generator replaces those sized
+# files with a single-image version of yanivlogo2.png.
 flutter_launcher_icons:
   image_path: "assets/icons/yanivlogo2.png"
 

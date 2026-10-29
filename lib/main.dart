@@ -54,9 +54,9 @@ class YanivScoreApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF673AB7), // Deep Purple
+          seedColor: const Color(0xFF5015b3), // Deep Purple
           brightness: Brightness.light,
-          primary: const Color(0xFF673AB7),
+          primary: const Color(0xFF5015b3),
           onPrimary: Colors.white,
           secondary: const Color(0xFFFFC107), // Amber
           surface: const Color(0xFFFFFFFF),
@@ -89,7 +89,7 @@ class YanivScoreApp extends StatelessWidget {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             elevation: 0,
-            backgroundColor: const Color(0xFF673AB7),
+            backgroundColor: const Color(0xFF5015b3),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 32),
             shape: RoundedRectangleBorder(
@@ -119,10 +119,10 @@ class YanivScoreApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF673AB7), width: 2),
+            borderSide: const BorderSide(color: Color(0xFF5015b3), width: 2),
           ),
           labelStyle: const TextStyle(
-            color: Color(0xFF673AB7),
+            color: Color(0xFF5015b3),
             fontWeight: FontWeight.w500,
           ),
           hintStyle: TextStyle(color: Colors.deepPurple.withValues(alpha: 0.3)),

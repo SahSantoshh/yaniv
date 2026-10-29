@@ -829,7 +829,7 @@ class _GameScreenState extends State<GameScreen> {
                           "${player.totals.isNotEmpty ? player.totals.last : 0} pts",
                           style: const TextStyle(
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF673AB7),
+                            color: Color(0xFF5015b3),
                           ),
                         ),
                       );
@@ -875,7 +875,7 @@ class _GameScreenState extends State<GameScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: const Color(0xFF673AB7).withValues(alpha: 0.3),
+                        color: const Color(0xFF5015b3).withValues(alpha: 0.3),
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -885,14 +885,14 @@ class _GameScreenState extends State<GameScreen> {
                         Icon(
                           Icons.person_add_rounded,
                           size: 20,
-                          color: Color(0xFF673AB7),
+                          color: Color(0xFF5015b3),
                         ),
                         SizedBox(width: 8),
                         Text(
                           "ADD NEW PLAYER",
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF673AB7),
+                            color: Color(0xFF5015b3),
                             fontSize: 13,
                           ),
                         ),
@@ -1255,7 +1255,7 @@ class _GameScreenState extends State<GameScreen> {
         floatingActionButton: !gameOver
             ? FloatingActionButton.extended(
                 onPressed: _showAddScoresDialog,
-                backgroundColor: const Color(0xFF673AB7),
+                backgroundColor: const Color(0xFF5015b3),
                 foregroundColor: Colors.white,
                 elevation: 4,
                 icon: const Icon(Icons.add_rounded),

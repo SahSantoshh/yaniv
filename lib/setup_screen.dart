@@ -340,7 +340,21 @@ class SetupScreenState extends State<SetupScreen> {
             title: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset('assets/icons/app_logo.png', height: 48, width: 48),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF7B3FE4), Color(0xFF5015B3)],
+                    ),
+                  ),
+                  child: Image.asset(
+                    'assets/icons/yaniv_transparent.png',
+                    height: 48,
+                    width: 48,
+                  ),
+                ),
                 const SizedBox(width: 10),
                 const Text(kAppBrandName),
               ],

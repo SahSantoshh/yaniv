@@ -6,20 +6,25 @@ This project uses **CocoaPods** for iOS plugins (`flutter.config.enable-swift-pa
 
 Several plugins still lack usable iOS Swift Package Manager support (`mobile_scanner`, `permission_handler_apple`, etc.), and recent FlutterFire/plugin releases that target SPM have shipped **without** CocoaPods `Sources/` trees on pub.dev. Enabling SPM failed earlier because `firebase_core` had no iOS package path Crashlytics expected.
 
-## Broken pub.dev packages (pin via `dependency_overrides`)
+## Broken pub.dev packages
 
-These versions omit native Sources and produce empty CocoaPods aggregate targets (`Module '…' not found`):
+These versions omit native Sources and produce empty CocoaPods aggregate targets (`Module '…' not found`).
 
-| Package | Broken | Last good |
+Still pinned, because the newest release is still the broken one:
+
+| Package | Broken (still latest) | Pinned |
 |---|---|---|
-| `firebase_core` | 4.15.0 | 4.14.0 |
-| `mobile_scanner` | 7.4.2 | 7.4.1 |
-| `permission_handler_apple` | 9.6.2 | 9.6.1 |
-| `shared_preferences_foundation` | 2.5.7 | 2.5.6 |
-| `url_launcher_ios` | 6.4.2 | 6.4.1 |
-| `webview_flutter_wkwebview` | 3.26.1 | 3.26.0 |
+| `mobile_scanner` | 7.4.2 | 7.4.1 (direct dependency) |
+| `url_launcher_ios` | 6.4.2 | 6.4.1 (`dependency_overrides`) |
 
-Revisit and remove overrides once fixed releases are published.
+Later releases include CocoaPods sources again, so these pins were removed:
+
+| Package | Broken | Now using |
+|---|---|---|
+| `firebase_core` | 4.15.0 | 5.1.0 |
+| `permission_handler_apple` | 9.6.2 | 9.6.4 |
+| `shared_preferences_foundation` | 2.5.7 | 2.6.1 |
+| `webview_flutter_wkwebview` | 3.26.1 | 3.27.2 |
 
 ## Setup
 
