@@ -14,14 +14,14 @@ Still pinned, because the newest release is still the broken one:
 
 | Package | Broken (still latest) | Pinned |
 |---|---|---|
-| `mobile_scanner` | 7.4.2 | 7.4.1 (direct dependency) |
 | `url_launcher_ios` | 6.4.2 | 6.4.1 (`dependency_overrides`) |
 
 Later releases include CocoaPods sources again, so these pins were removed:
 
 | Package | Broken | Now using |
 |---|---|---|
-| `firebase_core` | 4.15.0 | 5.1.0 |
+| `firebase_core` | 4.15.0 | 5.2.0 |
+| `mobile_scanner` | 7.4.2 | 7.5.0 |
 | `permission_handler_apple` | 9.6.2 | 9.6.4 |
 | `shared_preferences_foundation` | 2.5.7 | 2.6.1 |
 | `webview_flutter_wkwebview` | 3.26.1 | 3.27.2 |
