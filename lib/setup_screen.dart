@@ -47,6 +47,7 @@ class SetupScreenState extends State<SetupScreen> {
 
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;
+  GameSnapshot? _pausedMatch;
 
   @override
   void dispose() {
@@ -120,7 +121,7 @@ class SetupScreenState extends State<SetupScreen> {
     );
   }
 
-  void _startGame() {
+  Future<void> _startGame() async {
     final players = _playerControllers
         .where((c) => c.text.trim().isNotEmpty)
         .map((c) => Player(c.text.trim()))
@@ -192,6 +193,38 @@ class SetupScreenState extends State<SetupScreen> {
       return;
     }
 
+    if (_pausedMatch != null) {
+      final replace = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'This replaces the paused match.',
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('NO'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text(
+                'YES',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+      );
+      if (replace != true || !mounted) return;
+      await SavedMatch.clear();
+      if (!mounted) return;
+      setState(() => _pausedMatch = null);
+    }
+
     if (_interstitialAd != null) {
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
@@ -254,9 +287,10 @@ class SetupScreenState extends State<SetupScreen> {
       if (!mounted) return;
       _loadInterstitialAd();
       if (result is List<String>) {
+        setState(() => _pausedMatch = null);
         _showCompletedTable(result);
       } else {
-        _offerSavedMatch();
+        _refreshPausedMatch();
       }
     });
   }
@@ -265,68 +299,31 @@ class SetupScreenState extends State<SetupScreen> {
     final saved = await SavedMatch.load();
     if (!mounted) return;
     if (saved != null) {
-      await _askToResume(saved);
+      setState(() => _pausedMatch = saved);
       return;
     }
     final table = await SavedMatch.loadTable();
     if (!mounted || table == null) return;
     setState(() {
+      _pausedMatch = null;
       _setPlayerNames(table.names);
       _copyRules(table.rules);
     });
   }
 
-  Future<void> _offerSavedMatch() async {
+  Future<void> _refreshPausedMatch() async {
     final saved = await SavedMatch.load();
-    if (!mounted || saved == null) return;
-    await _askToResume(saved);
+    if (!mounted) return;
+    setState(() => _pausedMatch = saved);
   }
 
   Future<void> _showCompletedTable(List<String> names) async {
     final table = await SavedMatch.loadTable();
     if (!mounted) return;
     setState(() {
+      _pausedMatch = null;
       _setPlayerNames(names);
       if (table != null) _copyRules(table.rules);
-    });
-  }
-
-  Future<void> _askToResume(GameSnapshot saved) async {
-    final continueMatch = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Continue this match?',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-        content: Text(resumeMatchLine(saved)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('START NEW'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text(
-              'CONTINUE',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (!mounted || continueMatch == null) return;
-    if (continueMatch) {
-      _navigateToImportedGame(saved);
-      return;
-    }
-    await SavedMatch.clear();
-    if (!mounted) return;
-    setState(() {
-      _setPlayerNames([for (final player in saved.players) player.name]);
-      _copyRules(saved.rules);
     });
   }
 
@@ -528,6 +525,13 @@ class SetupScreenState extends State<SetupScreen> {
                 const SizedBox(width: 8),
               ],
             ),
+            if (_pausedMatch != null)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+                sliver: SliverToBoxAdapter(
+                  child: _buildPausedMatchCard(colorScheme),
+                ),
+              ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
               sliver: SliverToBoxAdapter(
@@ -927,6 +931,127 @@ class SetupScreenState extends State<SetupScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPausedMatchCard(ColorScheme colorScheme) {
+    final saved = _pausedMatch;
+    if (saved == null) return const SizedBox.shrink();
+    final totals = matchTotals(saved);
+    final rounds = saved.roundHistory.length;
+    final roundLabel = rounds == 0
+        ? 'No rounds yet'
+        : rounds == 1
+        ? '1 round'
+        : '$rounds rounds';
+    var lowestScore = 0;
+    final played = <int>[];
+    for (var i = 0; i < saved.players.length; i++) {
+      if (saved.players[i].joinedAtRound >= rounds) continue;
+      played.add(i);
+      if (played.length == 1 || totals[i] < lowestScore) {
+        lowestScore = totals[i];
+      }
+    }
+    final leading = {
+      for (final index in played)
+        if (totals[index] == lowestScore) index,
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [colorScheme.primary, const Color(0xFF311B92)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'MATCH IN PROGRESS',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            roundLabel,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
+          for (var i = 0; i < saved.players.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      saved.players[i].name,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  if (leading.contains(i)) ...[
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Colors.amber,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  Text(
+                    '${totals[i]}',
+                    style: TextStyle(
+                      color: leading.contains(i) ? Colors.amber : Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => _navigateToImportedGame(saved),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF311B92),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text(
+                'CONTINUE',
+                style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

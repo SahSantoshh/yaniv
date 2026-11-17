@@ -103,7 +103,7 @@ class SavedMatch {
 }
 
 String resumeMatchLine(GameSnapshot snapshot) {
-  final totals = _totals(snapshot);
+  final totals = matchTotals(snapshot);
   final scores = [
     for (var i = 0; i < snapshot.players.length; i++)
       '${snapshot.players[i].name} ${totals[i]}',
@@ -113,7 +113,7 @@ String resumeMatchLine(GameSnapshot snapshot) {
   return '${scores.join(' · ')} · $roundLabel';
 }
 
-List<int> _totals(GameSnapshot snapshot) {
+List<int> matchTotals(GameSnapshot snapshot) {
   final totals = List<int>.filled(snapshot.players.length, 0);
   final running = List.generate(snapshot.players.length, (_) => <int>[]);
   for (var r = 0; r < snapshot.roundHistory.length; r++) {

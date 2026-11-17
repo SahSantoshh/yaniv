@@ -41,8 +41,11 @@ void main() {
     await tester.pumpWidget(const YanivScoreApp());
     await settle(tester);
 
-    expect(find.text('Continue this match?'), findsOneWidget);
-    expect(find.text('Maya 0 · Ari 37 · 1 round'), findsOneWidget);
+    expect(find.text('MATCH IN PROGRESS'), findsOneWidget);
+    expect(find.text('1 round'), findsOneWidget);
+    expect(find.text('Maya'), findsOneWidget);
+    expect(find.text('37'), findsOneWidget);
+    expect(find.text('Continue this match?'), findsNothing);
 
     await tester.tap(find.text('CONTINUE'));
     await settle(tester);
@@ -54,21 +57,36 @@ void main() {
     );
   });
 
-  testWidgets('start new drops the scores and keeps the names', (tester) async {
+  testWidgets('starting a new match can replace the paused one', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(400, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await SavedMatch.save(snapshot);
 
     await tester.pumpWidget(const YanivScoreApp());
     await settle(tester);
-    await tester.tap(find.text('START NEW'));
+
+    final names = find.byType(TextField);
+    await tester.enterText(names.at(0), 'Maya');
+    await tester.enterText(names.at(1), 'Ari');
+    await tester.tap(find.text('START NEW MATCH'));
     await settle(tester);
 
-    expect(find.text('Continue this match?'), findsNothing);
-    expect(await SavedMatch.load(), isNull);
-    expect(find.text('Maya'), findsOneWidget);
-    expect(find.text('Ari'), findsOneWidget);
-    expect(find.text('200'), findsWidgets);
+    expect(find.text('This replaces the paused match.'), findsOneWidget);
+    await tester.tap(find.text('NO'));
+    await settle(tester);
+
+    expect(find.text('MATCH IN PROGRESS'), findsOneWidget);
+    expect((await SavedMatch.load())?.roundHistory.length, 1);
+
+    await tester.tap(find.text('START NEW MATCH'));
+    await settle(tester);
+    await tester.tap(find.text('YES'));
+    await settle(tester);
+
+    expect(find.text('SCOREBOARD'), findsOneWidget);
+    expect((await SavedMatch.load())?.roundHistory, isEmpty);
   });
 
   testWidgets('a finished match fills names the next time the app opens', (
@@ -84,7 +102,7 @@ void main() {
     await tester.pumpWidget(const YanivScoreApp());
     await settle(tester);
 
-    expect(find.text('Continue this match?'), findsNothing);
+    expect(find.text('MATCH IN PROGRESS'), findsNothing);
     expect(find.text('Maya'), findsOneWidget);
     expect(find.text('Ari'), findsOneWidget);
     expect(find.text('200'), findsWidgets);
