@@ -8,12 +8,13 @@ import 'package:yaniv/round_history_widget.dart';
 import 'package:yaniv/scoreboard_widget.dart';
 
 import 'game_history.dart';
+import 'saved_match.dart';
 import 'rule_examples_screen.dart';
 import 'scoring_rules.dart';
 import 'game_share/game_snapshot.dart';
 import 'game_share/share_game_qr_screen.dart';
 
-enum _GameMenuAction { shareQr, rules, endMatch }
+enum _GameMenuAction { shareQr, rules, pause, endMatch }
 
 class GameScreen extends StatefulWidget {
   final List<Player> players;
@@ -45,8 +46,10 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   bool _forceEnd = false;
+  bool _leaving = false;
+  bool _keepSaved = true;
   late List<Player> _players;
   final List<List<RoundScore>> _rawScoreHistory = [];
   final List<List<String>> roundHistory = [];
@@ -59,14 +62,23 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _players = List.from(widget.players);
     if (widget.initialRoundHistory != null) {
       _rawScoreHistory.addAll(widget.initialRoundHistory!);
       _recalculateTotals();
+    } else {
+      _persist();
     }
 
     _loadMainBanner();
     _loadInterstitialAd();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) return;
+    _persist();
   }
 
   void _loadInterstitialAd() {
@@ -156,6 +168,7 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _bannerAd?.dispose();
     for (var ad in _inlineAds.values) {
       ad.dispose();
@@ -234,7 +247,39 @@ class _GameScreenState extends State<GameScreen> {
 
     roundHistory.clear();
     roundHistory.addAll(newRoundHistory);
-    _checkGameEnd();
+    _persist();
+  }
+
+  GameSnapshot _snapshot() => GameSnapshot(
+    players: [
+      for (final player in _players)
+        PlayerSnapshot(name: player.name, joinedAtRound: player.joinedAtRound),
+    ],
+    roundHistory: [
+      for (final round in _rawScoreHistory) [for (final score in round) score],
+    ],
+    rules: _rules,
+  );
+
+  Future<void> _persist() {
+    if (!_keepSaved) return Future<void>.value();
+    if (gameOver) {
+      _keepSaved = false;
+      return SavedMatch.complete(
+        names: [for (final player in _players) player.name],
+        rules: _rules,
+      ).then((_) {
+        if (mounted) _checkGameEnd();
+      });
+    }
+    return SavedMatch.save(_snapshot());
+  }
+
+  Future<void> _pauseAndLeave() async {
+    await _persist();
+    if (!mounted) return;
+    setState(() => _leaving = true);
+    Navigator.pop(context);
   }
 
   void _checkGameEnd() {
@@ -313,8 +358,11 @@ class _GameScreenState extends State<GameScreen> {
                   padding: const EdgeInsets.only(bottom: 16),
                   child: ElevatedButton(
                     onPressed: () {
+                      final names = [
+                        for (final player in _players) player.name,
+                      ];
                       Navigator.pop(dialogContext);
-                      Navigator.pop(dialogContext);
+                      Navigator.pop(dialogContext, names);
                     },
                     child: const Text('BACK TO HOME'),
                   ),
@@ -816,6 +864,7 @@ class _GameScreenState extends State<GameScreen> {
                           onSubmitted: (val) {
                             if (val.trim().isNotEmpty) {
                               setState(() => player.name = val.trim());
+                              _persist();
                             }
                           },
                         ),
@@ -840,9 +889,8 @@ class _GameScreenState extends State<GameScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.05),
+                    color: Theme.of(context).colorScheme.primary
+                        .withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -944,9 +992,8 @@ class _GameScreenState extends State<GameScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.6),
+                color: Theme.of(context).colorScheme.primary
+                    .withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -1165,14 +1212,20 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: gameOver || _forceEnd,
+      canPop: gameOver || _forceEnd || _leaving,
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop && !gameOver) {
-          final confirm = await _showEndGameDialog(context);
-          if (confirm == true && context.mounted) {
-            setState(() => _forceEnd = true);
-            Navigator.pop(context);
+          final choice = await _showLeaveMatchDialog(context);
+          if (!context.mounted || choice == null) return;
+          if (choice == _LeaveMatch.pause) {
+            await _pauseAndLeave();
+            return;
           }
+          _keepSaved = false;
+          await SavedMatch.clear();
+          if (!context.mounted) return;
+          setState(() => _forceEnd = true);
+          Navigator.pop(context);
         }
       },
       child: Scaffold(
@@ -1192,6 +1245,8 @@ class _GameScreenState extends State<GameScreen> {
                     _shareGameViaQr();
                   case _GameMenuAction.rules:
                     _showRulesInfo();
+                  case _GameMenuAction.pause:
+                    _pauseAndLeave();
                   case _GameMenuAction.endMatch:
                     Navigator.maybePop(context);
                 }
@@ -1209,6 +1264,13 @@ class _GameScreenState extends State<GameScreen> {
                   child: ListTile(
                     leading: Icon(Icons.info_outline_rounded),
                     title: Text("Match Rules"),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _GameMenuAction.pause,
+                  child: ListTile(
+                    leading: Icon(Icons.pause_rounded),
+                    title: Text("Pause"),
                   ),
                 ),
                 PopupMenuItem(
@@ -1273,23 +1335,27 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
-Future<bool?> _showEndGameDialog(BuildContext context) {
-  return showDialog<bool>(
+enum _LeaveMatch { pause, quit }
+
+Future<_LeaveMatch?> _showLeaveMatchDialog(BuildContext context) {
+  return showDialog<_LeaveMatch>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Text(
-        'END MATCH?',
+        'PAUSE OR QUIT?',
         style: TextStyle(fontWeight: FontWeight.w900),
       ),
-      content: const Text('All current scores will be lost. Ready to quit?'),
+      content: const Text(
+        'Pause keeps this match. Quit throws the scores away.',
+      ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('STAY'),
+          onPressed: () => Navigator.of(dialogContext).pop(_LeaveMatch.pause),
+          child: const Text('PAUSE'),
         ),
         TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
+          onPressed: () => Navigator.of(dialogContext).pop(_LeaveMatch.quit),
           child: const Text(
             'QUIT',
             style: TextStyle(

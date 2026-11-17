@@ -69,9 +69,8 @@ class AdConsent {
     return _canRequestAds;
   }
 
-  static AdRequest adRequest() => AdRequest(
-    nonPersonalizedAds: !_personalizedAdsAllowed,
-  );
+  static AdRequest adRequest() =>
+      AdRequest(nonPersonalizedAds: !_personalizedAdsAllowed);
 
   /// Shows the AdMob privacy options form when the user wants to change consent.
   static Future<FormError?> showPrivacyOptions() {
@@ -84,8 +83,8 @@ class AdConsent {
 
   /// Whether a privacy-options entry point should be offered in Settings/Privacy.
   static Future<bool> privacyOptionsRequired() async {
-    final status =
-        await ConsentInformation.instance.getPrivacyOptionsRequirementStatus();
+    final status = await ConsentInformation.instance
+        .getPrivacyOptionsRequirementStatus();
     return status == PrivacyOptionsRequirementStatus.required;
   }
 

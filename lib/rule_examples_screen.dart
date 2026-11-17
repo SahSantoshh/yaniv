@@ -16,8 +16,7 @@ class RuleExamplesScreen extends StatelessWidget {
           _Intro(),
           _Section(
             title: 'Call score',
-            body:
-                'You can call only when your hand is at or below the call score.',
+            body: 'You can call only when your hand is at or below the call score.',
             tables: [
               _Table(
                 columns: ['Case', 'Input', 'Result'],
@@ -49,8 +48,7 @@ class RuleExamplesScreen extends StatelessWidget {
           ),
           _Section(
             title: 'Successful call',
-            body:
-                'The caller has the lowest hand alone. They add 0. With winner half on, their previous total is halved. Everyone else adds their hand.',
+            body: 'The caller has the lowest hand alone. They add 0. With winner half on, their previous total is halved. Everyone else adds their hand.',
             tables: [
               _Table(
                 caption: 'A calls 3. B has 8. C has 10.',
@@ -73,8 +71,7 @@ class RuleExamplesScreen extends StatelessWidget {
           ),
           _Section(
             title: 'Asaf',
-            body:
-                'Someone has a lower hand. The caller adds their hand plus 30. The lowest hand adds 0.',
+            body: 'Someone has a lower hand. The caller adds their hand plus 30. The lowest hand adds 0.',
             tables: [
               _Table(
                 caption: 'A calls 5. B has 2. C has 9.',
@@ -86,8 +83,7 @@ class RuleExamplesScreen extends StatelessWidget {
                 ],
               ),
               _Table(
-                caption:
-                    'A was 10 and calls 5. B was 40 and has 2. C was 20 and has 2. Both lowest hands are halved.',
+                caption: 'A was 10 and calls 5. B was 40 and has 2. C was 20 and has 2. Both lowest hands are halved.',
                 columns: ['Player', 'Was', 'Hand', 'Adds', 'Becomes'],
                 flex: [3, 2, 2, 2, 2],
                 rows: [
@@ -130,12 +126,10 @@ class RuleExamplesScreen extends StatelessWidget {
           ),
           _Section(
             title: 'Caller and someone else both have 0',
-            body:
-                'A called 0 is never a penalty. With winner half on, only the caller is halved.',
+            body: 'A called 0 is never a penalty. With winner half on, only the caller is halved.',
             tables: [
               _Table(
-                caption:
-                    'Winner half on. A was 40, B was 20, C was 10. A calls 0, B has 0, C has 6.',
+                caption: 'Winner half on. A was 40, B was 20, C was 10. A calls 0, B has 0, C has 6.',
                 columns: ['Player', 'Was', 'Hand', 'Becomes'],
                 rows: [
                   ['A, caller', '40', '0', '20'],
@@ -163,12 +157,10 @@ class RuleExamplesScreen extends StatelessWidget {
           ),
           _Section(
             title: 'Asaf off',
-            body:
-                'The lowest hand is the caller. If several players share it, pick which of them called. Only that caller is halved.',
+            body: 'The lowest hand is the caller. If several players share it, pick which of them called. Only that caller is halved.',
             tables: [
               _Table(
-                caption:
-                    'One lowest hand. A was 40 and has 2. B was 20 and has 8. C was 10 and has 9.',
+                caption: 'One lowest hand. A was 40 and has 2. B was 20 and has 8. C was 10 and has 9.',
                 columns: ['Player', 'Was', 'Hand', 'Becomes'],
                 rows: [
                   ['A, caller', '40', '2', '20'],
@@ -177,8 +169,7 @@ class RuleExamplesScreen extends StatelessWidget {
                 ],
               ),
               _Table(
-                caption:
-                    'Shared lowest hand. A was 40 and has 4. B was 20 and has 4. C was 10 and has 9. A called.',
+                caption: 'Shared lowest hand. A was 40 and has 4. B was 20 and has 4. C was 10 and has 9. A called.',
                 columns: ['Player', 'Was', 'Hand', 'Becomes'],
                 rows: [
                   ['A, caller', '40', '4', '20'],
@@ -187,8 +178,7 @@ class RuleExamplesScreen extends StatelessWidget {
                 ],
               ),
               _Table(
-                caption:
-                    'A and B both have 0. C has 6. Previous totals 40, 20, 10. B is picked as the caller.',
+                caption: 'A and B both have 0. C has 6. Previous totals 40, 20, 10. B is picked as the caller.',
                 columns: ['Player', 'Was', 'Hand', 'Becomes'],
                 rows: [
                   ['A', '40', '0', '40'],
@@ -209,8 +199,7 @@ class RuleExamplesScreen extends StatelessWidget {
           ),
           _Section(
             title: 'Halving',
-            body:
-                'A total that lands exactly on 124 or 62 is cut in half, rounded up. 31 is odd, so it is not a threshold.',
+            body: 'A total that lands exactly on 124 or 62 is cut in half, rounded up. 31 is odd, so it is not a threshold.',
             tables: [
               _Table(
                 columns: ['Case', 'Input', 'Result'],
@@ -229,8 +218,7 @@ class RuleExamplesScreen extends StatelessWidget {
           ),
           _Section(
             title: 'Winner half',
-            body:
-                'A round winner’s previous total is cut in half, rounded up. A score of 0 that is not the winner is not halved.',
+            body: 'A round winner’s previous total is cut in half, rounded up. A score of 0 that is not the winner is not halved.',
             tables: [
               _Table(
                 columns: ['Case', 'Input', 'Result'],
@@ -247,12 +235,10 @@ class RuleExamplesScreen extends StatelessWidget {
           ),
           _Section(
             title: 'Joining',
-            body:
-                'A new player starts from the highest total plus the join penalty.',
+            body: 'A new player starts from the highest total plus the join penalty.',
             tables: [
               _Table(
-                caption:
-                    'A was 40 and adds 3. B joins with 5. Join penalty 10. Winner half off.',
+                caption: 'A was 40 and adds 3. B joins with 5. Join penalty 10. Winner half off.',
                 columns: ['Player', 'Start', 'Hand', 'Becomes'],
                 rows: [
                   ['A', '40', '3', '43'],
@@ -260,8 +246,7 @@ class RuleExamplesScreen extends StatelessWidget {
                 ],
               ),
               _Table(
-                caption:
-                    'B joins and wins. Winner half on. B starts at 50, then that start is halved.',
+                caption: 'B joins and wins. Winner half on. B starts at 50, then that start is halved.',
                 columns: ['Player', 'Becomes'],
                 flex: [2, 1],
                 rows: [
@@ -288,8 +273,7 @@ class RuleExamplesScreen extends StatelessWidget {
           ),
           _Section(
             title: 'Target score',
-            body:
-                'Default is 124. The match ends only when a total goes above it.',
+            body: 'Default is 124. The match ends only when a total goes above it.',
             tables: [
               _Table(
                 columns: ['Case', 'Totals', 'Result'],

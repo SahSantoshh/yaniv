@@ -274,9 +274,8 @@ class RoundHistoryList extends StatelessWidget {
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF5015b3,
-                                        ).withValues(alpha: 0.1),
+                                        color: const Color(0xFF5015b3)
+                                            .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: const Text(

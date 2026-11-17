@@ -15,6 +15,7 @@ import 'game_history_screen.dart';
 import 'game_screen.dart';
 import 'legal/privacy_policy_screen.dart';
 import 'rule_examples_screen.dart';
+import 'saved_match.dart';
 import 'scoring_rules.dart';
 
 class SetupScreen extends StatefulWidget {
@@ -209,47 +210,154 @@ class SetupScreenState extends State<SetupScreen> {
   }
 
   void _navigateToGame(List<Player> players, int endScore) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => GameScreen(
-          players: players,
-          endScore: endScore,
-          callScore: parseCallScore(_callScoreController.text),
-          halvingRuleEnabled: halvingRuleEnabled,
-          winnerHalfPreviousScoreRule: winnerHalfPreviousScoreRule,
-          asafPenaltyRuleEnabled: asafPenaltyRuleEnabled,
-          penaltyOnTieRuleEnabled: penaltyOnTieRuleEnabled,
-          penaltyScore: int.tryParse(_penaltyScoreController.text) ?? 30,
-          newPlayerJoinPenalty:
-              int.tryParse(_newPlayerJoinPenaltyController.text) ?? 10,
-        ),
+    _pushGame(
+      GameScreen(
+        players: players,
+        endScore: endScore,
+        callScore: parseCallScore(_callScoreController.text),
+        halvingRuleEnabled: halvingRuleEnabled,
+        winnerHalfPreviousScoreRule: winnerHalfPreviousScoreRule,
+        asafPenaltyRuleEnabled: asafPenaltyRuleEnabled,
+        penaltyOnTieRuleEnabled: penaltyOnTieRuleEnabled,
+        penaltyScore: int.tryParse(_penaltyScoreController.text) ?? 30,
+        newPlayerJoinPenalty:
+            int.tryParse(_newPlayerJoinPenaltyController.text) ?? 10,
       ),
-    ).then((_) => _loadInterstitialAd()); // Reload for next time
+    );
   }
 
   void _navigateToImportedGame(GameSnapshot snapshot) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => GameScreen(
-          players: [
-            for (final p in snapshot.players)
-              Player(p.name, joinedAtRound: p.joinedAtRound),
-          ],
-          initialRoundHistory: snapshot.roundHistory,
-          endScore: snapshot.rules.endScore,
-          callScore: snapshot.rules.callScore,
-          halvingRuleEnabled: snapshot.rules.halvingRuleEnabled,
-          winnerHalfPreviousScoreRule:
-              snapshot.rules.winnerHalfPreviousScoreRule,
-          asafPenaltyRuleEnabled: snapshot.rules.asafPenaltyRuleEnabled,
-          penaltyOnTieRuleEnabled: snapshot.rules.penaltyOnTieRuleEnabled,
-          penaltyScore: snapshot.rules.penaltyScore,
-          newPlayerJoinPenalty: snapshot.rules.newPlayerJoinPenalty,
-        ),
+    _pushGame(
+      GameScreen(
+        players: [
+          for (final p in snapshot.players)
+            Player(p.name, joinedAtRound: p.joinedAtRound),
+        ],
+        initialRoundHistory: snapshot.roundHistory,
+        endScore: snapshot.rules.endScore,
+        callScore: snapshot.rules.callScore,
+        halvingRuleEnabled: snapshot.rules.halvingRuleEnabled,
+        winnerHalfPreviousScoreRule: snapshot.rules.winnerHalfPreviousScoreRule,
+        asafPenaltyRuleEnabled: snapshot.rules.asafPenaltyRuleEnabled,
+        penaltyOnTieRuleEnabled: snapshot.rules.penaltyOnTieRuleEnabled,
+        penaltyScore: snapshot.rules.penaltyScore,
+        newPlayerJoinPenalty: snapshot.rules.newPlayerJoinPenalty,
       ),
     );
+  }
+
+  void _pushGame(Widget screen) {
+    Navigator.push<Object?>(
+      context,
+      MaterialPageRoute(builder: (_) => screen),
+    ).then((result) {
+      if (!mounted) return;
+      _loadInterstitialAd();
+      if (result is List<String>) {
+        _showCompletedTable(result);
+      } else {
+        _offerSavedMatch();
+      }
+    });
+  }
+
+  Future<void> _restoreOnLaunch() async {
+    final saved = await SavedMatch.load();
+    if (!mounted) return;
+    if (saved != null) {
+      await _askToResume(saved);
+      return;
+    }
+    final table = await SavedMatch.loadTable();
+    if (!mounted || table == null) return;
+    setState(() {
+      _setPlayerNames(table.names);
+      _copyRules(table.rules);
+    });
+  }
+
+  Future<void> _offerSavedMatch() async {
+    final saved = await SavedMatch.load();
+    if (!mounted || saved == null) return;
+    await _askToResume(saved);
+  }
+
+  Future<void> _showCompletedTable(List<String> names) async {
+    final table = await SavedMatch.loadTable();
+    if (!mounted) return;
+    setState(() {
+      _setPlayerNames(names);
+      if (table != null) _copyRules(table.rules);
+    });
+  }
+
+  Future<void> _askToResume(GameSnapshot saved) async {
+    final continueMatch = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Continue this match?',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        content: Text(resumeMatchLine(saved)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('START NEW'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              'CONTINUE',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || continueMatch == null) return;
+    if (continueMatch) {
+      _navigateToImportedGame(saved);
+      return;
+    }
+    await SavedMatch.clear();
+    if (!mounted) return;
+    setState(() {
+      _setPlayerNames([for (final player in saved.players) player.name]);
+      _copyRules(saved.rules);
+    });
+  }
+
+  void _setPlayerNames(List<String> names) {
+    final filled = [
+      for (final name in names)
+        if (name.trim().isNotEmpty) name.trim(),
+    ];
+    while (_playerControllers.length < filled.length) {
+      _playerControllers.add(TextEditingController());
+      _playerFocusNodes.add(FocusNode());
+    }
+    while (_playerControllers.length > filled.length &&
+        _playerControllers.length > 2) {
+      _playerControllers.removeLast().dispose();
+      _playerFocusNodes.removeLast().dispose();
+    }
+    for (var i = 0; i < _playerControllers.length; i++) {
+      _playerControllers[i].text = i < filled.length ? filled[i] : '';
+    }
+  }
+
+  void _copyRules(ScoringRules rules) {
+    _endScoreController.text = '${rules.endScore}';
+    _callScoreController.text = '${rules.callScore}';
+    _penaltyScoreController.text = '${rules.penaltyScore}';
+    _newPlayerJoinPenaltyController.text = '${rules.newPlayerJoinPenalty}';
+    halvingRuleEnabled = rules.halvingRuleEnabled;
+    winnerHalfPreviousScoreRule = rules.winnerHalfPreviousScoreRule;
+    asafPenaltyRuleEnabled = rules.asafPenaltyRuleEnabled;
+    penaltyOnTieRuleEnabled = rules.penaltyOnTieRuleEnabled;
   }
 
   @override
@@ -259,6 +367,7 @@ class SetupScreenState extends State<SetupScreen> {
     _addPlayerField(requestFocus: false);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreOnLaunch();
       _prepareAdsThenLoad();
     });
   }

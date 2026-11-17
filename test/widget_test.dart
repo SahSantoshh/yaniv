@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:yaniv/game_screen.dart';
 import 'package:yaniv/main.dart';
 import 'package:yaniv/player.dart';
+import 'package:yaniv/saved_match.dart';
 import 'package:yaniv/scoreboard_widget.dart';
 import 'package:yaniv/scoring_rules.dart';
 
 void main() {
+  setUp(() {
+    SavedMatch.resetQueue();
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('Setup screen opens with two players', (
     WidgetTester tester,
   ) async {
@@ -17,7 +24,7 @@ void main() {
     await tester.pumpWidget(const YanivScoreApp());
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('YANIV'), findsAtLeastNWidgets(1));
+    expect(find.text('Yaniv'), findsAtLeastNWidgets(1));
     expect(find.text('PLAYERS'), findsOneWidget);
     expect(find.text('Enter name...'), findsNWidgets(2));
 
